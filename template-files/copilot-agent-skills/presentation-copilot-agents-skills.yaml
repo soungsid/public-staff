@@ -1,0 +1,356 @@
+presentation:
+  titre: "GitHub Copilot — Agents & Skills : Personnaliser et partager son assistant IA"
+  audience: "Équipe de développeurs"
+  date: "2026-06-13"
+
+slides:
+
+  - id: slide-01
+    titre: "Anatomie d'un custom agent"
+    sous_titres:
+      - "Qu'est-ce qu'un agent ?"
+      - "Structure du fichier"
+      - "Où le placer ?"
+
+    contenu:
+
+      definition: >
+        Un agent est une persona spécialisée que l'on confie à Copilot.
+        Il pense, planifie et exécute des tâches multi-étapes de façon autonome.
+        On lui attribue un rôle précis (ex : Security Reviewer, Planner, Documentateur),
+        des outils autorisés, et des permissions explicites sur ce qu'il peut ou ne peut pas faire.
+        Copilot peut choisir de l'invoquer automatiquement ou on peut l'appeler directement avec @nom-agent.
+
+      structure_fichier:
+        format: "Fichier Markdown avec extension .agent.md"
+        deux_parties:
+          - partie: "YAML Frontmatter (métadonnées)"
+            champs:
+              - champ: "name"
+                description: "Identifiant unique de l'agent (caractères autorisés : a-z, A-Z, 0-9, ., -, _)"
+              - champ: "description"
+                description: "Ce que l'agent fait — utilisé par Copilot pour décider quand l'invoquer"
+              - champ: "tools"
+                description: >
+                  Liste des outils autorisés (syntaxe : #tool:web/fetch, #tool:github, etc.).
+                  Restreindre les outils réduit la surface d'action et la consommation de tokens.
+              - champ: "permissions"
+                description: >
+                  Contrôle les droits d'accès (lecture seule, écriture, exécution de commandes).
+                  Permet d'appliquer le principe de moindre privilège.
+              - champ: "safe-outputs"
+                description: "Définit les sorties considérées comme sûres (important pour les agents autonomes)"
+              - champ: "on"
+                description: >
+                  Déclencheur du workflow agentique (ex : issue ouverte, PR créée, push).
+                  Présent dans les agents d'automatisation cloud.
+          - partie: "Corps Markdown (instructions)"
+            description: >
+              Instructions libres en Markdown : persona, comportement attendu, contraintes,
+              exemples d'interactions, règles métier spécifiques au projet.
+
+        exemple_minimal: |
+          ---
+          name: security-reviewer
+          description: Analyse le code pour détecter les vulnérabilités. Ne modifie jamais les fichiers.
+          tools:
+            - "#tool:github"
+          permissions:
+            content: read
+          ---
+
+          Tu es un expert en sécurité applicative (OWASP Top 10, injection, XSS, secrets exposés).
+          Tu fournis un rapport structuré avec sévérité, localisation et recommandation.
+          Tu ne proposes jamais de correctif directement — tu documentes uniquement.
+
+      ou_placer:
+        contextes:
+          - contexte: "Projet / Équipe (partagé via Git)"
+            chemin: ".github/agents/mon-agent.agent.md"
+            avantage: "Versionné, accessible à toute l'équipe, visible dans le repo"
+          - contexte: "Personnel (tous les projets)"
+            chemin: "~/.copilot/agents/mon-agent.agent.md"
+            avantage: "Disponible dans tous les workspaces de la machine"
+        regles_de_priorite: >
+          En cas de collision de noms, le fichier dans ~/.copilot/agents/ prend la priorité
+          sur celui du repo. Utile pour surcharger un agent d'équipe avec sa propre version.
+        note_cli: >
+          Pour Copilot CLI, les agents sont définis via des fichiers .agent.md dans
+          ~/.copilot/agents/ ou dans le repo courant. La commande d'invocation : gh copilot @nom-agent.
+
+  - id: slide-02
+    titre: "Anatomie d'un custom skill"
+    sous_titres:
+      - "Qu'est-ce qu'un skill ?"
+      - "Structure du dossier"
+      - "Où le placer ?"
+
+    contenu:
+
+      definition: >
+        Un skill est un dossier d'instructions qui apprend à Copilot à réaliser
+        UNE action précise et répétable. C'est un module réutilisable que l'on greffe sur
+        Copilot ou sur un agent. Il ne pense pas, ne planifie pas — il exécute exactement
+        ce pour quoi il a été conçu. Copilot charge le skill uniquement quand il détecte
+        que la demande de l'utilisateur correspond.
+
+      structure_dossier:
+        racine: ".github/skills/<nom-du-skill>/"
+        fichiers:
+          - fichier: "SKILL.md"
+            statut: "REQUIS"
+            description: >
+              Fichier Markdown avec YAML frontmatter. Contient le nom, la description,
+              et les instructions complètes. C'est ce qui est injecté dans le contexte
+              de Copilot quand le skill est activé.
+            champs_frontmatter:
+              - "name (requis) : identifiant unique, minuscules, tirets"
+              - "description : utilisé par Copilot pour détecter la pertinence"
+              - "version : suivi de version du skill"
+          - fichier: "scripts/"
+            statut: "Optionnel"
+            description: "Scripts Python ou PowerShell exécutés par le skill (automatisation concrète)"
+          - fichier: "references/"
+            statut: "Optionnel"
+            description: "Documentation chargée dans le contexte (specs, conventions, glossaire métier)"
+          - fichier: "templates/"
+            statut: "Optionnel"
+            description: "Fichiers de code starter que l'agent modifie selon le besoin (ex : template de PR, de test)"
+          - fichier: "assets/"
+            statut: "Optionnel"
+            description: "Fichiers statiques utilisés tels quels dans la sortie (ex : logo, config fixe)"
+          - fichier: "LICENSE.txt"
+            statut: "Recommandé"
+            description: "Licence du skill (Apache 2.0 souvent utilisé pour les skills open source)"
+
+        exemple_minimal_skill_md: |
+          ---
+          name: generate-adr
+          description: Génère un Architecture Decision Record (ADR) structuré à partir d'une décision technique
+          version: 1.0.0
+          ---
+
+          ## Instructions
+
+          Quand l'utilisateur décrit une décision d'architecture, génère un fichier ADR
+          suivant le template dans templates/adr-template.md.
+
+          Champs obligatoires : Titre, Statut, Contexte, Décision, Conséquences.
+          Nomme le fichier : docs/adr/YYYY-MM-DD-<sujet-en-kebab-case>.md
+
+      mecanisme_chargement: >
+        Copilot lit d'abord uniquement name + description de chaque skill disponible.
+        Ce n'est que quand il juge le skill pertinent qu'il charge les instructions complètes.
+        Les ressources (scripts, références) sont accédées à la demande.
+        → Consommation de tokens proportionnelle à l'usage réel.
+
+      ou_placer:
+        emplacements:
+          - chemin: ".github/skills/<nom>/"
+            scope: "Projet — partagé avec l'équipe via Git"
+          - chemin: ".claude/skills/<nom>/"
+            scope: "Projet — reconnu aussi par Copilot (standard ouvert partagé avec Claude Code)"
+          - chemin: ".agents/skills/<nom>/"
+            scope: "Projet — autre emplacement reconnu automatiquement"
+          - chemin: "~/.copilot/skills/<nom>/"
+            scope: "Personnel — disponible dans tous les workspaces"
+        parametre_vscode: >
+          VS Code permet de définir des emplacements personnalisés supplémentaires via
+          le setting chat.agentSkillsLocations (tableau de chemins absolus ou relatifs).
+        standard_ouvert: >
+          Les skills suivent un standard ouvert : un skill écrit pour Copilot
+          fonctionne aussi avec Copilot CLI et Copilot Coding Agent (cloud).
+          Les skills placés dans .claude/skills/ sont lus à la fois par Claude Code et Copilot.
+
+  - id: slide-03
+    titre: "Skill vs Agent — Quelle différence ?"
+    sous_titres:
+      - "Raison d'être"
+      - "Économie de tokens"
+      - "Lifecycle et contrôle"
+      - "Tableau comparatif"
+
+    contenu:
+
+      raison_detre:
+        skill: >
+          Un skill enseigne à Copilot comment faire UNE chose précise.
+          Il est déclaratif, prévisible, stateless.
+          Exemples : générer un ADR, rédiger un changelog, créer un test unitaire selon un template.
+        agent: >
+          Un agent est une persona autonome qui reçoit un objectif et le décompose elle-même.
+          Il raisonne, sélectionne ses outils, et enchaîne plusieurs actions.
+          Exemples : analyser toute la sécurité d'un PR, planifier une migration et produire un plan d'implémentation.
+
+      economie_de_tokens:
+        instructions_globales:
+          description: "copilot-instructions.md ou .github/copilot-instructions.md"
+          comportement: "Toujours injectées dans le contexte — tokens consommés à chaque message"
+          impact: "Élevé si le fichier est volumineux, même pour des questions simples"
+        skills:
+          comportement: >
+            Chargement progressif : Copilot lit seulement name + description de tous les skills
+            au démarrage. Les instructions complètes ne sont chargées QUE si le skill est jugé
+            pertinent. Scripts et références, uniquement à la demande.
+          impact: "Faible — proportionnel à l'usage réel"
+        agents:
+          comportement: >
+            La persona complète (frontmatter + instructions) est chargée quand l'agent est invoqué.
+            Avec des permissions restreintes (outils limités), on réduit aussi le contexte injecté.
+          impact: "Moyen à élevé selon la taille du fichier .agent.md"
+        hooks_natifs:
+          comportement: "Exécutent du code directement, sans passer par le LLM"
+          impact: "Zéro token — à privilégier pour les automatisations pures sans décision IA"
+
+      lifecycle:
+        skill:
+          invocation: "Automatique (Copilot détecte la pertinence) ou explicite (@skill ou mention)"
+          duree: "Stateless — s'exécute et se termine. Aucun état conservé entre les appels."
+          controle_humain: >
+            Exécution séquentielle, prévisible. L'humain peut intervenir entre chaque skill.
+            La sortie est identique à chaque exécution pour les mêmes entrées.
+        agent:
+          invocation: "Explicite (@nom-agent) ou déclenché par un événement GitHub (on: push, issue, etc.)"
+          duree: >
+            Peut s'étaler sur plusieurs échanges ou sur une session complète.
+            Maintient son contexte (outils utilisés, résultats intermédiaires) le long de la session.
+          controle_humain: >
+            Moins prévisible — l'agent prend des décisions autonomes sur le chemin à suivre.
+            Requiert des permissions bien définies pour rester dans des rails sûrs.
+
+      tableau_comparatif:
+        colonnes: ["Dimension", "Skill", "Agent"]
+        lignes:
+          - ["Granularité", "Une action atomique", "Workflow multi-étapes"]
+          - ["Autonomie", "Nulle — exécute et s'arrête", "Haute — raisonne et décide"]
+          - ["Tokens consommés", "Faibles (chargement lazy)", "Moyens à élevés (persona complète)"]
+          - ["Prévisibilité", "Très haute — résultat reproductible", "Variable selon le raisonnement"]
+          - ["Format fichier", "Dossier + SKILL.md", "Fichier .agent.md unique"]
+          - ["Déclenchement", "Automatique ou mention", "Explicite ou événement GitHub"]
+          - ["État entre appels", "Stateless", "Avec mémoire de session"]
+          - ["Cas d'usage typique", "Générer un rapport, créer un fichier", "Analyser, planifier, orchestrer"]
+
+  - id: slide-04
+    titre: "Partager agents et skills dans une équipe"
+    sous_titres:
+      - "Stratégies de distribution"
+      - "Niveaux de portée"
+      - "Bonnes pratiques"
+
+    contenu:
+
+      strategies:
+
+        - strategie: "Via le repository du projet (recommandé)"
+          description: >
+            Placer les agents (.github/agents/) et les skills (.github/skills/) directement
+            dans le repo. Ils sont versionnés avec le code, visibles dans l'historique Git,
+            et disponibles immédiatement pour tout développeur qui clone le projet.
+          avantages:
+            - "Pas de configuration supplémentaire — Copilot les détecte automatiquement"
+            - "Évolution des agents/skills dans les PR → revue de code possible"
+            - "Cohérence garantie : tout le monde utilise la même version"
+          limites:
+            - "Scope limité au projet — non partageable entre plusieurs repos sans copie"
+
+        - strategie: "Via un repository dédié aux outils d'équipe"
+          description: >
+            Créer un repo central (ex : mon-org/copilot-toolbox) qui héberge
+            tous les agents et skills partagés. Les développeurs clonent ou référencent ce repo.
+            Le repo github/awesome-copilot sur GitHub.com suit ce modèle pour la communauté.
+          avantages:
+            - "Un seul endroit pour maintenir les outils — évite la duplication"
+            - "Possibilité de versionner et de publier des releases"
+            - "Découvrabilité centralisée pour l'équipe"
+          mise_en_oeuvre:
+            - "Cloner le repo outils dans un dossier local"
+            - "Pointer VS Code vers ce dossier via chat.agentSkillsLocations"
+            - "Ou copier les dossiers nécessaires dans .github/skills/ de chaque projet"
+
+        - strategie: "Via les dotfiles / configuration personnelle"
+          description: >
+            Chaque développeur maintient ses propres agents (~/.copilot/agents/)
+            et skills (~/.copilot/skills/) dans ses dotfiles (gérés avec chezmoi, stow, ou un repo git).
+          avantages:
+            - "Personnalisation individuelle — chaque dev adapte à son workflow"
+            - "Disponible dans tous les projets sans configuration par repo"
+          limites:
+            - "Non partagé automatiquement — chaque dev doit maintenir ses dotfiles à jour"
+          bonne_pratique: >
+            Combiner avec la stratégie repo : les agents d'équipe dans .github/agents/,
+            les surcharges personnelles dans ~/.copilot/agents/ (priorité sur les agents repo).
+
+        - strategie: "Niveau Organisation / Enterprise (roadmap)"
+          description: >
+            GitHub a annoncé le support d'agents et skills au niveau organisation et enterprise
+            (centralisés, sans nécessiter de configuration par repo).
+            Ce niveau de partage n'est pas encore disponible en GA (en cours de déploiement).
+          statut: "Coming soon — à surveiller dans le GitHub Changelog"
+
+        - strategie: "Standard ouvert cross-tools"
+          description: >
+            Les skills placés dans .claude/skills/ ou .agents/skills/ sont reconnus
+            à la fois par Copilot et par Claude Code.
+            Un skill écrit une fois est réutilisable dans les deux ecosystèmes.
+          avantages:
+            - "Investissement rentabilisé si l'équipe utilise plusieurs assistants IA"
+            - "Encourage l'écriture de skills génériques et robustes"
+
+      bonnes_pratiques:
+        - "Nommer les agents et skills clairement (kebab-case, verbe-objet : generate-adr, review-security)"
+        - "Versionner les skills (champ version dans le frontmatter)"
+        - "Restreindre les outils et permissions des agents au strict nécessaire"
+        - "Documenter le déclenchement attendu dans la description (clé pour le chargement automatique)"
+        - "Tester un nouveau skill dans .github/skills/ avant de le promouvoir dans un repo partagé"
+        - "Inclure des exemples concrets dans SKILL.md pour guider le comportement de Copilot"
+        - "Ajouter un README.md dans .github/skills/ listant les skills disponibles et leur usage"
+
+  - id: slide-05
+    titre: "Les Agent Plugins — Packager et distribuer"
+    sous_titres:
+      - "Concept & Rôle"
+      - "Anatomie d'un plugin"
+      - "Distribution & Installation"
+
+    contenu:
+
+      definition: >
+        Un Agent Plugin est le mécanisme de packaging officiel de Copilot.
+        Il permet d'empaqueter des agents, des skills, des hooks et des configurations MCP
+        au sein d'une seule et même unité distribuable et installable. C'est l'équivalent
+        d'un gestionnaire de paquets pour les extensions de l'assistant IA.
+
+      structure_plugin:
+        racine: "Dossier du plugin (ex : mon-plugin/)"
+        fichiers:
+          - fichier: ".github/plugin.json"
+            statut: "REQUIS"
+            description: "Manifeste déclarant les métadonnées, le nom et les composants inclus dans le plugin."
+          - fichier: "agents/"
+            statut: "Optionnel"
+            description: "Contient les fichiers .agent.md (les personas personnalisés)."
+          - fichier: "skills/"
+            statut: "Optionnel"
+            description: "Contient les sous-dossiers de skills individuels avec leurs SKILL.md."
+          - fichier: "hooks/"
+            statut: "Optionnel"
+            description: "Scripts ou actions événementielles exécutés aux points de cycle de vie (sessionStart, preToolUse, etc.)."
+          - fichier: "mcp/"
+            statut: "Optionnel"
+            description: "Configuration .mcp.json pour intégrer des serveurs Model Context Protocol."
+
+      distribution:
+        modes:
+          - mode: "Local ou Git direct"
+            description: "Installation depuis un dossier local ou un dépôt GitHub (public ou privé)."
+          - mode: "Marketplace d'entreprise"
+            description: "Publication sur un catalogue interne à l'organisation pour une meilleure découvrabilité."
+          - mode: "Installation centralisée"
+            description: "Les administrateurs d'entreprise peuvent pré-installer ou imposer certains plugins."
+
+  - id: slide-06
+    titre: "Idées de skills pour notre équipe"
+    sous_titres:
+      - "Discussion ouverte"
+    contenu: {}
+    note: "Slide laissé vide intentionnellement — discussion avec l'équipe"

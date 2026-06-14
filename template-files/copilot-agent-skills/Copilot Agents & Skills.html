@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitHub Copilot — Agents &amp; Skills</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─── VARIABLES ──────────────────────────────────────────── */
+:root {
+  --dark:       oklch(20% 0.09 12);
+  --dark-mid:   oklch(28% 0.10 12);
+  --dark-soft:  oklch(34% 0.09 12);
+  --accent:     oklch(52% 0.18 22);
+  --accent-hi:  oklch(60% 0.20 25);
+  --accent-dim: oklch(52% 0.07 22);
+  --accent-bg:  oklch(96.5% 0.016 22);
+  --blue:       oklch(50% 0.14 250);
+  --blue-bg:    oklch(95% 0.025 250);
+  --green:      oklch(48% 0.14 155);
+  --amber:      oklch(62% 0.14 80);
+  --bg:         oklch(97.5% 0.007 15);
+  --surface:    #ffffff;
+  --text:       oklch(17% 0.025 15);
+  --muted:      oklch(50% 0.035 15);
+  --border:     oklch(89% 0.015 15);
+  --code-bg:    oklch(16% 0.04 240);
+  --code-fg:    oklch(88% 0.03 200);
+  --sans:       'IBM Plex Sans', system-ui, sans-serif;
+  --mono:       'IBM Plex Mono', 'Courier New', monospace;
+}
+
+/* ─── RESET ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0d0d; font-family: var(--sans); }
+
+/* ─── STAGE ──────────────────────────────────────────────── */
+#stage {
+  width: 100vw; height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background: #0d0d0d;
+}
+
+/* ─── CANVAS ─────────────────────────────────────────────── */
+#canvas {
+  width: 1920px; height: 1080px;
+  position: relative;
+  transform-origin: center center;
+  overflow: hidden;
+}
+
+/* ─── SLIDES ─────────────────────────────────────────────── */
+.slide {
+  position: absolute; inset: 0;
+  width: 1920px; height: 1080px;
+  display: flex; flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.slide.active { opacity: 1; pointer-events: auto; }
+
+/* ─── STEP REVEAL ────────────────────────────────────────── */
+.step-item {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.38s ease, transform 0.38s ease;
+  pointer-events: none;
+}
+.step-item.revealed { opacity: 1; transform: none; pointer-events: auto; }
+/* Table rows: no transform */
+.slide-table-type .step-item,
+.slide-token-type .step-item { transform: none; transition: opacity 0.32s ease; }
+
+/* ─── PROGRESS BAR ───────────────────────────────────────── */
+#progress {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 52px;
+  background: var(--dark);
+  display: flex; z-index: 100;
+  border-top: 1px solid var(--dark-mid);
+}
+.prog-section {
+  display: flex; flex-direction: column;
+  justify-content: center; gap: 5px;
+  padding: 0 18px;
+  border-right: 1px solid var(--dark-mid);
+  cursor: default;
+  transition: background 0.3s;
+}
+.prog-section:last-child { border-right: none; }
+.prog-section.active { background: var(--dark-mid); }
+.prog-label {
+  font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.prog-section.active .prog-label { color: rgba(255,255,255,0.85); }
+.prog-dots { display: flex; gap: 5px; align-items: center; }
+.prog-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  transition: background 0.3s, transform 0.3s;
+}
+.prog-dot.past    { background: var(--accent-dim); }
+.prog-dot.current { background: var(--accent-hi); transform: scale(1.6); }
+
+/* ─── SHARED CONTENT CHROME ──────────────────────────────── */
+.slide-eyebrow {
+  height: 52px; min-height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 80px;
+  background: var(--dark);
+}
+.eyebrow-section {
+  font-size: 17px; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.45);
+}
+.eyebrow-counter {
+  font-size: 19px; color: rgba(255,255,255,0.28);
+}
+
+.slide-header {
+  padding: 32px 80px 28px; position: relative;
+  border-bottom: 2px solid var(--border);
+  background: var(--surface);
+}
+.slide-header::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: var(--accent);
+}
+.slide-title {
+  font-size: 56px; font-weight: 700;
+  color: var(--text); letter-spacing: -0.02em; line-height: 1.1;
+}
+.slide-context {
+  font-size: 24px; color: var(--muted); margin-top: 6px;
+  font-family: var(--mono);
+}
+.slide-badge {
+  position: absolute; top: 32px; right: 80px;
+  font-size: 19px; font-weight: 600; color: var(--accent);
+  padding: 4px 14px;
+  border: 1.5px solid var(--accent-dim);
+  border-radius: 5px;
+}
+
+.slide-body {
+  flex: 1; padding: 28px 80px 60px; overflow: hidden;
+  background: var(--bg);
+}
+.content-body { display: flex; flex-direction: column; gap: 14px; }
+.grid-body    { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-content: start; }
+.grid-body.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.twocol-body  { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
+.token-body   { display: flex; flex-direction: column; gap: 0; }
+.table-body   { display: flex; flex-direction: column; padding-top: 20px; padding-bottom: 20px; }
+
+/* ─── TITLE SLIDE ────────────────────────────────────────── */
+.slide-title-type { background: var(--dark); }
+.title-eyebrow-label {
+  position: absolute; top: 56px; left: 100px;
+  font-size: 20px; font-weight: 600; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--accent);
+}
+.title-content {
+  position: absolute; top: 50%; left: 100px; right: 140px;
+  transform: translateY(-52%);
+}
+.title-main {
+  font-size: 96px; font-weight: 700;
+  letter-spacing: -0.025em; line-height: 1; color: #fff;
+  margin-bottom: 8px;
+}
+.title-accent {
+  font-size: 82px; font-weight: 600;
+  color: var(--accent); line-height: 1; margin-bottom: 36px;
+}
+.title-tagline {
+  font-size: 34px; font-weight: 300;
+  color: rgba(255,255,255,0.6); line-height: 1.5;
+  max-width: 900px;
+}
+.title-meta {
+  position: absolute; bottom: 72px; left: 100px;
+  font-size: 22px; color: rgba(255,255,255,0.28);
+}
+.title-deco {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 420px;
+  background: linear-gradient(135deg, transparent 0%, var(--dark-mid) 100%);
+  opacity: 0.5;
+}
+.title-deco-line {
+  position: absolute; right: 100px; top: 50%; transform: translateY(-50%);
+  width: 2px; height: 320px;
+  background: linear-gradient(to bottom, transparent, var(--accent), transparent);
+}
+
+/* ─── SECTION SLIDE ──────────────────────────────────────── */
+.slide-section-type { background: var(--dark); }
+.section-num-ghost {
+  position: absolute; right: -30px; top: 50%; transform: translateY(-50%);
+  font-size: 380px; font-weight: 700; line-height: 1;
+  color: rgba(255,255,255,0.03);
+  user-select: none; pointer-events: none;
+}
+.section-stripe {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+  background: var(--accent);
+}
+.section-content {
+  position: absolute; top: 50%; left: 100px;
+  transform: translateY(-52%);
+  max-width: 960px;
+}
+.section-badge {
+  display: inline-block;
+  font-size: 16px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent);
+  padding: 6px 16px; border: 1.5px solid var(--accent);
+  border-radius: 4px; margin-bottom: 28px;
+}
+.section-title {
+  font-size: 78px; font-weight: 700;
+  color: #fff; letter-spacing: -0.02em; line-height: 1.1;
+  margin-bottom: 44px;
+}
+.section-items { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.section-items li {
+  font-size: 30px; font-weight: 400;
+  color: rgba(255,255,255,0.5);
+  padding-left: 28px; position: relative; line-height: 1.3;
+}
+.section-items li::before { content: '—'; position: absolute; left: 0; color: var(--accent-dim); }
+
+/* ─── AGENDA SLIDE ───────────────────────────────────────── */
+.slide-agenda-type { background: var(--bg); }
+.agenda-list { display: flex; flex-direction: column; gap: 16px; }
+.agenda-item {
+  display: flex; align-items: center; gap: 28px;
+  padding: 18px 28px;
+  background: var(--surface); border-radius: 10px; border: 1px solid var(--border);
+}
+.agenda-num {
+  font-size: 20px; font-weight: 700; font-family: var(--mono);
+  color: var(--accent); min-width: 56px; text-align: center;
+  padding: 7px 14px; background: var(--accent-bg); border-radius: 6px;
+}
+.agenda-text { font-size: 34px; font-weight: 500; color: var(--text); }
+
+/* ─── STEP: DEFINITION ───────────────────────────────────── */
+.step-definition {
+  font-size: 34px; font-weight: 400; line-height: 1.55;
+  color: var(--text); max-width: 1520px; text-wrap: pretty;
+}
+.step-definition em    { font-style: normal; color: var(--accent); font-weight: 500; }
+.step-definition strong { font-weight: 600; }
+
+/* ─── STEP: RULE ─────────────────────────────────────────── */
+.step-rule {
+  background: var(--accent-bg); border-left: 4px solid var(--accent);
+  padding: 18px 26px; border-radius: 0 8px 8px 0;
+  font-size: 28px; color: var(--text); line-height: 1.45;
+}
+.step-rule code    { font-family: var(--mono); font-size: 0.88em; background: rgba(0,0,0,0.07); padding: 2px 7px; border-radius: 4px; }
+.step-rule strong  { font-weight: 600; }
+
+/* ─── STEP: CHIPS ────────────────────────────────────────── */
+.step-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 4px 0; }
+.chips-label { font-size: 22px; color: var(--muted); font-weight: 500; }
+.chip {
+  display: inline-flex; align-items: center;
+  padding: 10px 24px; background: var(--dark); color: #fff;
+  border-radius: 40px; font-size: 25px; font-weight: 500;
+}
+
+/* ─── STEP: FIELD ────────────────────────────────────────── */
+.step-field, .step-file {
+  display: flex; align-items: flex-start; gap: 20px;
+  padding: 16px 22px; background: var(--surface);
+  border-radius: 10px; border: 1px solid var(--border);
+}
+.field-name, .file-name {
+  font-family: var(--mono); font-size: 26px; font-weight: 500;
+  min-width: 220px; padding-top: 2px;
+}
+.field-name { color: var(--dark); }
+.file-name  { color: var(--blue); }
+.field-badge {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; padding: 4px 10px; border-radius: 4px;
+  align-self: flex-start; margin-top: 4px; min-width: 108px; text-align: center;
+}
+.badge-REQUIS      { background: oklch(91% 0.07 22); color: var(--accent); }
+.badge-Recommandé  { background: oklch(93% 0.05 90); color: oklch(40% 0.14 90); }
+.badge-Recommande  { background: oklch(93% 0.05 90); color: oklch(40% 0.14 90); }
+.badge-Optionnel   { background: oklch(94% 0.02 15); color: var(--muted); }
+.badge-OPTIONNEL   { background: oklch(94% 0.02 15); color: var(--muted); }
+.field-text { flex: 1; }
+.field-desc { font-size: 28px; font-weight: 500; color: var(--text); line-height: 1.3; }
+.field-sub  { font-size: 22px; color: var(--muted); margin-top: 4px; line-height: 1.3; }
+
+/* ─── STEP: FIELD-GROUP ──────────────────────────────────── */
+.fg-label  { font-size: 19px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.fg-items  { display: flex; flex-direction: column; gap: 10px; }
+.fg-item   { display: flex; gap: 24px; align-items: baseline; padding: 10px 18px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); }
+.fg-name   { font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--dark); min-width: 160px; }
+.fg-desc   { font-size: 24px; color: var(--muted); line-height: 1.3; }
+
+/* ─── STEP: CODE ─────────────────────────────────────────── */
+.step-code { background: var(--code-bg); border-radius: 10px; overflow: hidden; }
+.code-label { background: oklch(22% 0.05 240); padding: 9px 20px; font-size: 18px; font-family: var(--mono); color: rgba(255,255,255,0.45); letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.code-pre   { padding: 22px 28px; font-size: 23px; font-family: var(--mono); color: var(--code-fg); line-height: 1.65; white-space: pre; overflow: auto; max-height: 500px; }
+.ck { color: oklch(72% 0.15 200); }   /* key   */
+.cv { color: oklch(82% 0.12 120); }   /* value */
+.cs { color: oklch(78% 0.12 150); }   /* string */
+.cd { color: oklch(72% 0.15 200); }   /* dash */
+.cc { color: rgba(255,255,255,0.32); font-style: italic; } /* comment */
+.cm { color: rgba(255,255,255,0.45); } /* markdown text */
+.ch { color: oklch(82% 0.1 55); font-weight: 600; } /* md header */
+
+/* ─── STEP: LOCATION ─────────────────────────────────────── */
+.step-location {
+  display: flex; align-items: flex-start; gap: 28px;
+  padding: 20px 28px; background: var(--surface);
+  border-radius: 10px; border: 1px solid var(--border);
+}
+.loc-scope { font-size: 18px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); min-width: 190px; margin-top: 4px; }
+.loc-path  { font-family: var(--mono); font-size: 26px; font-weight: 500; color: var(--dark); margin-bottom: 10px; }
+.loc-pros  { display: flex; flex-wrap: wrap; gap: 10px; }
+.loc-pro   { font-size: 20px; color: var(--text); padding: 3px 12px; background: oklch(95% 0.015 155); border-radius: 4px; }
+.loc-pro::before { content: '✓ '; color: var(--green); font-weight: 600; }
+
+.step-location-group {
+  background: var(--surface); border-radius: 10px; border: 1px solid var(--border);
+  padding: 18px 28px;
+}
+.loc-group-label { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
+.loc-group-items { display: flex; gap: 36px; }
+.loc-group-path  { font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--dark); margin-bottom: 4px; }
+.loc-group-scope { font-size: 19px; color: var(--muted); }
+
+/* ─── STEP: TWO-COL ──────────────────────────────────────── */
+.step-twocol    { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.comp-col       { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 28px 32px; display: flex; flex-direction: column; gap: 16px; }
+.comp-col-label { font-size: 34px; font-weight: 700; }
+.comp-col-label.skill { color: var(--blue); }
+.comp-col-label.agent { color: var(--accent); }
+.comp-col-tagline { font-size: 24px; font-weight: 400; color: var(--muted); margin-top: -8px; }
+.comp-col-items { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.comp-col-items li { font-size: 26px; color: var(--text); line-height: 1.4; padding-left: 24px; position: relative; }
+.comp-col-items li::before { content: '→'; position: absolute; left: 0; color: var(--muted); }
+
+/* twocol slide type — comparison-col as direct step-item */
+.twocol-body .step-item { display: flex; flex-direction: column; }
+.twocol-body .comp-col  { flex: 1; }
+
+/* ─── STEP: BEST-PRACTICE ────────────────────────────────── */
+.step-bp { display: flex; align-items: flex-start; gap: 18px; padding: 8px 0; }
+.bp-icon { color: var(--accent); font-size: 22px; min-width: 30px; text-align: center; margin-top: 5px; }
+.bp-text { font-size: 29px; line-height: 1.45; color: var(--text); }
+.bp-text code    { font-family: var(--mono); font-size: 0.88em; background: rgba(0,0,0,0.07); padding: 2px 7px; border-radius: 4px; }
+.bp-text strong  { font-weight: 600; }
+
+/* ─── STEP: STRATEGY ─────────────────────────────────────── */
+.step-strategy {
+  background: var(--surface); border-radius: 12px; border: 1px solid var(--border);
+  padding: 24px 28px;
+}
+.strat-rank  { font-size: 16px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.strat-title { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.strat-desc  { font-size: 24px; color: var(--muted); line-height: 1.4; margin-bottom: 12px; }
+.strat-tags  { display: flex; flex-wrap: wrap; gap: 8px; }
+.strat-pro   { font-size: 18px; color: var(--text); padding: 3px 10px; border-radius: 4px; background: oklch(95% 0.015 155); }
+.strat-pro::before { content: '✓ '; color: var(--green); font-weight: 600; }
+.strat-con   { font-size: 18px; color: var(--muted); padding: 3px 10px; border-radius: 4px; background: oklch(95% 0.01 80); }
+.strat-con::before { content: '⚠ '; color: var(--amber); }
+
+/* ─── STEP: DISTRIBUTION ─────────────────────────────────── */
+.step-distribution {
+  background: var(--surface); border-radius: 12px; border: 1px solid var(--border);
+  padding: 32px 36px;
+}
+.dist-rank  { font-size: 16px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.dist-title { font-size: 34px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+.dist-desc  { font-size: 27px; color: var(--muted); line-height: 1.45; }
+
+/* ─── STEP: BULLET ───────────────────────────────────────── */
+.step-bullet { display: flex; align-items: flex-start; gap: 16px; font-size: 28px; line-height: 1.4; padding: 4px 0; }
+.step-bullet::before { content: '→'; color: var(--accent); font-weight: 600; flex-shrink: 0; margin-top: 2px; }
+.step-bullet code { font-family: var(--mono); font-size: 0.9em; background: rgba(0,0,0,0.07); padding: 2px 7px; border-radius: 4px; }
+
+/* ─── TOKEN TABLE ────────────────────────────────────────── */
+.token-grid { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+.token-grid-header {
+  display: grid; grid-template-columns: 220px 300px 1fr 160px;
+  background: var(--dark); padding: 0;
+}
+.token-grid-header > div {
+  padding: 12px 22px; font-size: 16px; font-weight: 600;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.token-grid-header > div:last-child { border-right: none; }
+.token-row {
+  display: grid; grid-template-columns: 220px 300px 1fr 160px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.token-row:nth-child(even) { background: oklch(97% 0.004 15); }
+.token-cell       { padding: 18px 22px; line-height: 1.35; }
+.token-cell-label { font-size: 25px; font-weight: 700; color: var(--text); border-right: 1px solid var(--border); }
+.token-cell-ctx   { font-size: 19px; font-family: var(--mono); color: var(--muted); border-right: 1px solid var(--border); }
+.token-cell-beh   { font-size: 24px; color: var(--text); border-right: 1px solid var(--border); }
+.token-cell-imp   { font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-align: center; }
+.imp-high   { background: oklch(91% 0.07 22); color: var(--accent); }
+.imp-medium { background: oklch(93% 0.06 80); color: oklch(40% 0.14 80); }
+.imp-low    { background: oklch(93% 0.07 140); color: oklch(40% 0.14 140); }
+.imp-zero   { background: var(--blue-bg); color: var(--blue); }
+
+/* ─── COMPARISON TABLE ───────────────────────────────────── */
+.comp-table { width: 100%; border-collapse: collapse; font-size: 27px; }
+.comp-table thead th {
+  padding: 14px 22px; text-align: left;
+  font-size: 22px; font-weight: 700; letter-spacing: 0.04em;
+}
+.comp-table thead th:nth-child(1) { background: var(--dark); color: rgba(255,255,255,0.85); width: 260px; }
+.comp-table thead th:nth-child(2) { background: var(--blue); color: #fff; }
+.comp-table thead th:nth-child(3) { background: var(--accent); color: #fff; }
+.comp-table tbody td { padding: 13px 22px; border-bottom: 1px solid var(--border); line-height: 1.35; vertical-align: top; }
+.comp-table tbody tr:last-child td { border-bottom: none; }
+.comp-table tbody tr:nth-child(even) td { background: rgba(0,0,0,0.018); }
+.td-dim   { font-weight: 600; color: var(--dark); }
+.td-skill { color: var(--blue); }
+.td-agent { color: var(--accent); }
+
+/* ─── DISCUSSION SLIDE ───────────────────────────────────── */
+.slide-discussion-type { background: var(--dark); }
+.disc-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--accent); }
+.disc-content {
+  position: absolute; top: 50%; left: 100px; right: 120px;
+  transform: translateY(-52%);
+}
+.disc-title  { font-size: 80px; font-weight: 700; color: #fff; letter-spacing: -0.02em; margin-bottom: 20px; }
+.disc-prompt { font-size: 38px; color: var(--accent); margin-bottom: 52px; }
+.disc-hints  { display: flex; flex-direction: column; gap: 18px; }
+.disc-hint   { font-size: 27px; color: rgba(255,255,255,0.48); padding-left: 36px; position: relative; line-height: 1.35; }
+.disc-hint::before { content: '💡'; position: absolute; left: 0; opacity: 0.7; }
+
+/* ─── KEYBOARD HINT ──────────────────────────────────────── */
+#hint {
+  position: fixed; bottom: 10px; right: 14px;
+  font-size: 12px; color: rgba(255,255,255,0.18);
+  pointer-events: none; z-index: 999;
+  letter-spacing: 0.04em;
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="canvas">
+    <div id="slides-container"></div>
+    <nav id="progress"></nav>
+  </div>
+</div>
+<div id="hint">← ↑ Précédent &nbsp;|&nbsp; → ↓ Space Enter Suivant</div>
+
+<script src="copilot-data.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   MOTEUR DE PRÉSENTATION
+   ═══════════════════════════════════════════════════════════════ */
+let currentSlide = 0;
+let currentStep  = 0;
+const STORAGE_KEY = 'copilot-pres-v2';
+
+// ── Escape HTML ──────────────────────────────────────────────
+function e(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
+
+// ── Coloration syntaxique YAML / Markdown ────────────────────
+function highlight(code) {
+  let dashes = 0;
+  return code.split('\n').map(line => {
+    const t = line.trim();
+    if (t === '---') { dashes++; return `<span class="cd">${e(line)}</span>`; }
+    if (dashes < 2) {
+      const kv = line.match(/^(\s*)([\w-]+)\s*:\s*(.*)$/);
+      if (kv) return `${e(kv[1])}<span class="ck">${e(kv[2])}</span>: ${kv[3] ? `<span class="cv">${e(kv[3])}</span>` : ''}`;
+      const li = line.match(/^(\s*)-\s+(.+)$/);
+      if (li) return `${e(li[1])}<span class="cd">-</span> <span class="cs">${e(li[2])}</span>`;
+      return e(line) || '';
+    }
+    if (!t) return '';
+    if (t.startsWith('## ')) return `<span class="ch">${e(line)}</span>`;
+    return `<span class="cm">${e(line)}</span>`;
+  }).join('\n');
+}
+
+// ── Badge CSS class ──────────────────────────────────────────
+function badgeClass(b) {
+  if (!b) return 'badge-Optionnel';
+  const lo = b.toLowerCase();
+  if (lo === 'requis') return 'badge-REQUIS';
+  if (lo.startsWith('recommand')) return 'badge-Recommandé';
+  return 'badge-Optionnel';
+}
+
+// ── Rendu d'un step ──────────────────────────────────────────
+function renderStep(step) {
+  switch (step.type) {
+
+    case 'definition':
+      return `<div class="step-definition">${step.text}</div>`;
+
+    case 'rule':
+      return `<div class="step-rule">${step.text}</div>`;
+
+    case 'chips':
+      return `<div class="step-chips">
+        ${step.label ? `<span class="chips-label">${step.label} :</span>` : ''}
+        ${step.items.map(i => `<span class="chip">${i}</span>`).join('')}
+      </div>`;
+
+    case 'field':
+      return `<div class="step-field">
+        <span class="field-name">${step.name}</span>
+        <span class="field-badge ${badgeClass(step.badge)}">${step.badge}</span>
+        <div class="field-text">
+          <div class="field-desc">${step.desc}</div>
+          ${step.sub ? `<div class="field-sub">${step.sub}</div>` : ''}
+        </div>
+      </div>`;
+
+    case 'file':
+      return `<div class="step-file">
+        <span class="file-name">${step.name}</span>
+        <span class="field-badge ${badgeClass(step.badge)}">${step.badge||'Optionnel'}</span>
+        <div class="field-text"><div class="field-desc">${step.desc}</div></div>
+      </div>`;
+
+    case 'field-group':
+      return `<div>
+        <div class="fg-label">${step.label}</div>
+        <div class="fg-items">
+          ${step.fields.map(f => `<div class="fg-item"><span class="fg-name">${f.name}</span><span class="fg-desc">${f.desc}</span></div>`).join('')}
+        </div>
+      </div>`;
+
+    case 'location':
+      return `<div class="step-location">
+        <span class="loc-scope">${step.scope}</span>
+        <div>
+          <div class="loc-path">${e(step.path)}</div>
+          ${step.pros ? `<div class="loc-pros">${step.pros.map(p => `<span class="loc-pro">${p}</span>`).join('')}</div>` : ''}
+        </div>
+      </div>`;
+
+    case 'location-group':
+      return `<div class="step-location-group">
+        <div class="loc-group-label">${step.label}</div>
+        <div class="loc-group-items">
+          ${step.items.map(it => `<div class="loc-group-item">
+            <div class="loc-group-path">${e(it.path)}</div>
+            <div class="loc-group-scope">${e(it.scope)}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+
+    case 'two-col':
+      return `<div class="step-twocol">
+        <div class="comp-col">
+          <div class="comp-col-label skill">${step.left.label}</div>
+          ${step.left.tagline ? `<div class="comp-col-tagline">${step.left.tagline}</div>` : ''}
+          <ul class="comp-col-items">${step.left.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+        </div>
+        <div class="comp-col">
+          <div class="comp-col-label agent">${step.right.label}</div>
+          ${step.right.tagline ? `<div class="comp-col-tagline">${step.right.tagline}</div>` : ''}
+          <ul class="comp-col-items">${step.right.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+        </div>
+      </div>`;
+
+    case 'comparison-col':
+      return `<div class="comp-col" style="height:100%">
+        <div class="comp-col-label ${step.label === 'Skill' ? 'skill' : 'agent'}">${step.label}</div>
+        <div class="comp-col-tagline">${step.tagline}</div>
+        <ul class="comp-col-items">${step.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+      </div>`;
+
+    case 'token-row':
+      return `<div class="token-row">
+        <div class="token-cell token-cell-label">${step.label}</div>
+        <div class="token-cell token-cell-ctx">${step.context}</div>
+        <div class="token-cell token-cell-beh">${step.behavior}</div>
+        <div class="token-cell token-cell-imp imp-${step.impactLevel}">${step.impact}</div>
+      </div>`;
+
+    case 'best-practice':
+      return `<div class="step-bp">
+        <span class="bp-icon">${step.icon}</span>
+        <div class="bp-text">${step.text}</div>
+      </div>`;
+
+    case 'strategy':
+      return `<div class="step-strategy">
+        <div class="strat-rank">${step.rank}</div>
+        <div class="strat-title">${step.title}</div>
+        <div class="strat-desc">${step.desc}</div>
+        <div class="strat-tags">
+          ${(step.pros||[]).map(p=>`<span class="strat-pro">${p}</span>`).join('')}
+          ${(step.cons||[]).map(c=>`<span class="strat-con">${c}</span>`).join('')}
+        </div>
+      </div>`;
+
+    case 'distribution':
+      return `<div class="step-distribution">
+        <div class="dist-rank">${step.rank}</div>
+        <div class="dist-title">${step.title}</div>
+        <div class="dist-desc">${step.desc}</div>
+      </div>`;
+
+    case 'code':
+      return `<div class="step-code">
+        ${step.label ? `<div class="code-label">${step.label}</div>` : ''}
+        <pre class="code-pre">${highlight(step.content)}</pre>
+      </div>`;
+
+    case 'bullet':
+      return `<div class="step-bullet">${step.text}</div>`;
+
+    default:
+      return `<div style="color:red;font-size:20px">Step type inconnu: ${step.type}</div>`;
+  }
+}
+
+// ── Barre section + compteur ─────────────────────────────────
+function eyebrow(data, idx) {
+  const sec = PRESENTATION_DATA.sections.find(s => s.id === data.sectionId);
+  const total = PRESENTATION_DATA.slides.length;
+  return `<div class="slide-eyebrow">
+    <span class="eyebrow-section">${sec ? sec.label : ''}</span>
+    <span class="eyebrow-counter">${idx + 1} / ${total}</span>
+  </div>`;
+}
+
+function header(data) {
+  return `<div class="slide-header">
+    <h2 class="slide-title">${data.title}</h2>
+    ${data.context ? `<p class="slide-context">${e(data.context)}</p>` : ''}
+    ${data.badge   ? `<span class="slide-badge">${data.badge}</span>` : ''}
+  </div>`;
+}
+
+// ── Constructeurs de slides ───────────────────────────────────
+function buildSlide(data, idx) {
+  const el = document.createElement('div');
+  el.className = `slide slide-${data.type}-type`;
+  el.id = data.id;
+  el.dataset.index = idx;
+
+  switch (data.type) {
+    case 'title':
+      el.innerHTML = `
+        <div class="title-deco"></div>
+        <div class="title-deco-line"></div>
+        <span class="title-eyebrow-label">${data.meta}</span>
+        <div class="title-content">
+          <h1 class="title-main">${data.title}</h1>
+          <h2 class="title-accent">${data.accent}</h2>
+          <p class="title-tagline">${data.tagline}</p>
+        </div>
+        <div class="title-meta">${data.meta}</div>`;
+      break;
+
+    case 'section':
+      el.innerHTML = `
+        <div class="section-stripe"></div>
+        <div class="section-num-ghost">${data.num}</div>
+        <div class="section-content">
+          <span class="section-badge">Section ${data.num}</span>
+          <h2 class="section-title">${data.title}</h2>
+          <ul class="section-items">${data.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+        </div>`;
+      break;
+
+    case 'agenda':
+      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
+        <div class="slide-body content-body">
+          <div class="agenda-list">
+            ${data.steps.map((s,i) => `
+              <div class="step-item agenda-item" data-step="${i+1}">
+                <span class="agenda-num">${s.num}</span>
+                <span class="agenda-text">${s.text}</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+      break;
+
+    case 'content':
+      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
+        <div class="slide-body content-body">
+          ${data.steps.map((s,i) => `<div class="step-item" data-step="${i+1}">${renderStep(s)}</div>`).join('')}
+        </div>`;
+      break;
+
+    case 'twocol':
+      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
+        <div class="slide-body twocol-body">
+          ${data.steps.map((s,i) => `<div class="step-item" data-step="${i+1}">${renderStep(s)}</div>`).join('')}
+        </div>`;
+      break;
+
+    case 'grid': {
+      const cols = data.steps.length >= 3 ? 'cols-3' : '';
+      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
+        <div class="slide-body grid-body ${cols}">
+          ${data.steps.map((s,i) => `<div class="step-item" data-step="${i+1}">${renderStep(s)}</div>`).join('')}
+        </div>`;
+      break;
+    }
+
+    case 'token':
+      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
+        <div class="slide-body" style="background:var(--bg);padding-top:20px;padding-bottom:20px">
+          <div class="token-grid">
+            <div class="token-grid-header">
+              <div>Source</div><div>Fichier / Mécanisme</div>
+              <div>Comportement</div><div>Impact tokens</div>
+            </div>
+            ${data.steps.map((s,i) => `<div class="step-item" data-step="${i+1}">${renderStep(s)}</div>`).join('')}
+          </div>
+        </div>`;
+      break;
+
+    case 'table':
+      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
+        <div class="slide-body table-body" style="background:var(--bg)">
+          <table class="comp-table">
+            <thead><tr>
+              ${data.columns.map(c=>`<th>${c}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${data.steps.map((s,i) => `
+                <tr class="step-item" data-step="${i+1}">
+                  <td class="td-dim">${s.cells[0]}</td>
+                  <td class="td-skill">${s.cells[1]}</td>
+                  <td class="td-agent">${s.cells[2]}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      break;
+
+    case 'discussion':
+      el.innerHTML = `
+        <div class="disc-stripe"></div>
+        <div class="disc-content">
+          <h2 class="disc-title">${data.title}</h2>
+          <p class="disc-prompt">${data.prompt}</p>
+          <div class="disc-hints">
+            ${data.hints.map(h=>`<div class="disc-hint">${h}</div>`).join('')}
+          </div>
+        </div>`;
+      break;
+  }
+
+  return el;
+}
+
+// ── Barre de progression ─────────────────────────────────────
+function buildProgress() {
+  const nav = document.getElementById('progress');
+  nav.innerHTML = PRESENTATION_DATA.sections.map(sec =>
+    `<div class="prog-section" data-sec="${sec.id}" style="flex:${sec.slides.length}">
+      <div class="prog-dots">
+        ${sec.slides.map(si => `<div class="prog-dot" data-slide="${si}"></div>`).join('')}
+      </div>
+      <div class="prog-label">${sec.label}</div>
+    </div>`
+  ).join('');
+}
+
+function updateProgress() {
+  document.querySelectorAll('.prog-dot').forEach(d => {
+    const si = +d.dataset.slide;
+    d.classList.toggle('past',    si <  currentSlide);
+    d.classList.toggle('current', si === currentSlide);
+  });
+  const secId = PRESENTATION_DATA.slides[currentSlide]?.sectionId;
+  document.querySelectorAll('.prog-section').forEach(s =>
+    s.classList.toggle('active', s.dataset.sec === secId)
+  );
+}
+
+// ── Gestion des steps ────────────────────────────────────────
+function applySteps() {
+  const active = document.querySelector('.slide.active');
+  if (!active) return;
+  active.querySelectorAll('.step-item').forEach(el => {
+    el.classList.toggle('revealed', +el.dataset.step <= currentStep);
+  });
+}
+
+// ── Activation de slide ──────────────────────────────────────
+function activateSlide(idx) {
+  document.querySelectorAll('.slide').forEach((s, i) => s.classList.toggle('active', i === idx));
+}
+
+// ── Navigation ───────────────────────────────────────────────
+function forward() {
+  const slides = PRESENTATION_DATA.slides;
+  const max = slides[currentSlide].steps.length;
+  if (currentStep < max) {
+    currentStep++;
+  } else if (currentSlide < slides.length - 1) {
+    currentSlide++;
+    currentStep = 0;
+    activateSlide(currentSlide);
+  }
+  applySteps();
+  updateProgress();
+  save();
+}
+
+function backward() {
+  if (currentStep > 0) {
+    currentStep--;
+  } else if (currentSlide > 0) {
+    currentSlide--;
+    currentStep = PRESENTATION_DATA.slides[currentSlide].steps.length;
+    activateSlide(currentSlide);
+  }
+  applySteps();
+  updateProgress();
+  save();
+}
+
+// ── Persistance ───────────────────────────────────────────────
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ slide: currentSlide, step: currentStep }));
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    currentSlide = Math.min(d.slide || 0, PRESENTATION_DATA.slides.length - 1);
+    currentStep  = d.step  || 0;
+  } catch(ex) {}
+}
+
+// ── Clavier ───────────────────────────────────────────────────
+document.addEventListener('keydown', ev => {
+  switch (ev.key) {
+    case 'ArrowRight': case 'ArrowDown': case ' ': case 'Enter':
+      ev.preventDefault(); forward(); break;
+    case 'ArrowLeft': case 'ArrowUp': case 'Backspace':
+      ev.preventDefault(); backward(); break;
+    case 'Home':
+      currentSlide = 0; currentStep = 0;
+      activateSlide(0); applySteps(); updateProgress(); save(); break;
+    case 'End':
+      currentSlide = PRESENTATION_DATA.slides.length - 1;
+      currentStep = PRESENTATION_DATA.slides[currentSlide].steps.length;
+      activateSlide(currentSlide); applySteps(); updateProgress(); save(); break;
+  }
+});
+
+// ── Scaling ───────────────────────────────────────────────────
+function scale() {
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  document.getElementById('canvas').style.transform = `scale(${s})`;
+}
+window.addEventListener('resize', scale);
+
+// ── Init ──────────────────────────────────────────────────────
+function init() {
+  const container = document.getElementById('slides-container');
+  PRESENTATION_DATA.slides.forEach((data, idx) => container.appendChild(buildSlide(data, idx)));
+  buildProgress();
+  load();
+  activateSlide(currentSlide);
+  applySteps();
+  updateProgress();
+  scale();
+}
+
+init();
+</script>
+</body>
+</html>
