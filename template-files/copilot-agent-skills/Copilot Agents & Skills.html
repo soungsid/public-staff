@@ -7,12 +7,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['IBM Plex Sans', 'system-ui', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'Courier New', 'monospace'],
+      }
+    }
+  },
+  safelist: [
+    'opacity-0','opacity-100','translate-y-0','translate-y-3',
+    'pointer-events-none','pointer-events-auto','scale-[1.6]',
+    'bg-white/20','active'
+  ]
+}
+</script>
 <style>
-/* ─── VARIABLES ──────────────────────────────────────────── */
 :root {
   --dark:       oklch(20% 0.09 12);
   --dark-mid:   oklch(28% 0.10 12);
-  --dark-soft:  oklch(34% 0.09 12);
   --accent:     oklch(52% 0.18 22);
   --accent-hi:  oklch(60% 0.20 25);
   --accent-dim: oklch(52% 0.07 22);
@@ -22,739 +38,345 @@
   --green:      oklch(48% 0.14 155);
   --amber:      oklch(62% 0.14 80);
   --bg:         oklch(97.5% 0.007 15);
-  --surface:    #ffffff;
   --text:       oklch(17% 0.025 15);
   --muted:      oklch(50% 0.035 15);
   --border:     oklch(89% 0.015 15);
   --code-bg:    oklch(16% 0.04 240);
   --code-fg:    oklch(88% 0.03 200);
-  --sans:       'IBM Plex Sans', system-ui, sans-serif;
-  --mono:       'IBM Plex Mono', 'Courier New', monospace;
 }
-
-/* ─── RESET ──────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0d0d; font-family: var(--sans); }
-
-/* ─── STAGE ──────────────────────────────────────────────── */
-#stage {
-  width: 100vw; height: 100vh;
-  display: flex; align-items: center; justify-content: center;
-  background: #0d0d0d;
-}
-
-/* ─── CANVAS ─────────────────────────────────────────────── */
-#canvas {
-  width: 1920px; height: 1080px;
-  position: relative;
-  transform-origin: center center;
-  overflow: hidden;
-}
-
-/* ─── SLIDES ─────────────────────────────────────────────── */
-.slide {
-  position: absolute; inset: 0;
-  width: 1920px; height: 1080px;
-  display: flex; flex-direction: column;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  pointer-events: none;
-}
-.slide.active { opacity: 1; pointer-events: auto; }
-
-/* ─── STEP REVEAL ────────────────────────────────────────── */
-.step-item {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 0.38s ease, transform 0.38s ease;
-  pointer-events: none;
-}
-.step-item.revealed { opacity: 1; transform: none; pointer-events: auto; }
-/* Table rows: no transform */
-.slide-table-type .step-item,
-.slide-token-type .step-item { transform: none; transition: opacity 0.32s ease; }
-
-/* ─── PROGRESS BAR ───────────────────────────────────────── */
-#progress {
-  position: absolute; bottom: 0; left: 0; right: 0; height: 52px;
-  background: var(--dark);
-  display: flex; z-index: 100;
-  border-top: 1px solid var(--dark-mid);
-}
-.prog-section {
-  display: flex; flex-direction: column;
-  justify-content: center; gap: 5px;
-  padding: 0 18px;
-  border-right: 1px solid var(--dark-mid);
-  cursor: default;
-  transition: background 0.3s;
-}
-.prog-section:last-child { border-right: none; }
-.prog-section.active { background: var(--dark-mid); }
-.prog-label {
-  font-size: 13px; font-weight: 500;
-  color: rgba(255,255,255,0.35);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.prog-section.active .prog-label { color: rgba(255,255,255,0.85); }
-.prog-dots { display: flex; gap: 5px; align-items: center; }
-.prog-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,0.18);
-  transition: background 0.3s, transform 0.3s;
-}
-.prog-dot.past    { background: var(--accent-dim); }
-.prog-dot.current { background: var(--accent-hi); transform: scale(1.6); }
-
-/* ─── SHARED CONTENT CHROME ──────────────────────────────── */
-.slide-eyebrow {
-  height: 52px; min-height: 52px;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 80px;
-  background: var(--dark);
-}
-.eyebrow-section {
-  font-size: 17px; font-weight: 500; letter-spacing: 0.08em;
-  text-transform: uppercase; color: rgba(255,255,255,0.45);
-}
-.eyebrow-counter {
-  font-size: 19px; color: rgba(255,255,255,0.28);
-}
-
-.slide-header {
-  padding: 32px 80px 28px; position: relative;
-  border-bottom: 2px solid var(--border);
-  background: var(--surface);
-}
-.slide-header::before {
-  content: ''; position: absolute;
-  top: 0; left: 0; right: 0; height: 4px;
-  background: var(--accent);
-}
-.slide-title {
-  font-size: 56px; font-weight: 700;
-  color: var(--text); letter-spacing: -0.02em; line-height: 1.1;
-}
-.slide-context {
-  font-size: 24px; color: var(--muted); margin-top: 6px;
-  font-family: var(--mono);
-}
-.slide-badge {
-  position: absolute; top: 32px; right: 80px;
-  font-size: 19px; font-weight: 600; color: var(--accent);
-  padding: 4px 14px;
-  border: 1.5px solid var(--accent-dim);
-  border-radius: 5px;
-}
-
-.slide-body {
-  flex: 1; padding: 28px 80px 60px; overflow: hidden;
-  background: var(--bg);
-}
-.content-body { display: flex; flex-direction: column; gap: 14px; }
-.grid-body    { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-content: start; }
-.grid-body.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-.twocol-body  { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
-.token-body   { display: flex; flex-direction: column; gap: 0; }
-.table-body   { display: flex; flex-direction: column; padding-top: 20px; padding-bottom: 20px; }
-
-/* ─── TITLE SLIDE ────────────────────────────────────────── */
-.slide-title-type { background: var(--dark); }
-.title-eyebrow-label {
-  position: absolute; top: 56px; left: 100px;
-  font-size: 20px; font-weight: 600; letter-spacing: 0.18em;
-  text-transform: uppercase; color: var(--accent);
-}
-.title-content {
-  position: absolute; top: 50%; left: 100px; right: 140px;
-  transform: translateY(-52%);
-}
-.title-main {
-  font-size: 96px; font-weight: 700;
-  letter-spacing: -0.025em; line-height: 1; color: #fff;
-  margin-bottom: 8px;
-}
-.title-accent {
-  font-size: 82px; font-weight: 600;
-  color: var(--accent); line-height: 1; margin-bottom: 36px;
-}
-.title-tagline {
-  font-size: 34px; font-weight: 300;
-  color: rgba(255,255,255,0.6); line-height: 1.5;
-  max-width: 900px;
-}
-.title-meta {
-  position: absolute; bottom: 72px; left: 100px;
-  font-size: 22px; color: rgba(255,255,255,0.28);
-}
-.title-deco {
-  position: absolute; right: 0; top: 0; bottom: 0; width: 420px;
-  background: linear-gradient(135deg, transparent 0%, var(--dark-mid) 100%);
-  opacity: 0.5;
-}
-.title-deco-line {
-  position: absolute; right: 100px; top: 50%; transform: translateY(-50%);
-  width: 2px; height: 320px;
-  background: linear-gradient(to bottom, transparent, var(--accent), transparent);
-}
-
-/* ─── SECTION SLIDE ──────────────────────────────────────── */
-.slide-section-type { background: var(--dark); }
-.section-num-ghost {
-  position: absolute; right: -30px; top: 50%; transform: translateY(-50%);
-  font-size: 380px; font-weight: 700; line-height: 1;
-  color: rgba(255,255,255,0.03);
-  user-select: none; pointer-events: none;
-}
-.section-stripe {
-  position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
-  background: var(--accent);
-}
-.section-content {
-  position: absolute; top: 50%; left: 100px;
-  transform: translateY(-52%);
-  max-width: 960px;
-}
-.section-badge {
-  display: inline-block;
-  font-size: 16px; font-weight: 700; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--accent);
-  padding: 6px 16px; border: 1.5px solid var(--accent);
-  border-radius: 4px; margin-bottom: 28px;
-}
-.section-title {
-  font-size: 78px; font-weight: 700;
-  color: #fff; letter-spacing: -0.02em; line-height: 1.1;
-  margin-bottom: 44px;
-}
-.section-items { list-style: none; display: flex; flex-direction: column; gap: 14px; }
-.section-items li {
-  font-size: 30px; font-weight: 400;
-  color: rgba(255,255,255,0.5);
-  padding-left: 28px; position: relative; line-height: 1.3;
-}
-.section-items li::before { content: '—'; position: absolute; left: 0; color: var(--accent-dim); }
-
-/* ─── AGENDA SLIDE ───────────────────────────────────────── */
-.slide-agenda-type { background: var(--bg); }
-.agenda-list { display: flex; flex-direction: column; gap: 16px; }
-.agenda-item {
-  display: flex; align-items: center; gap: 28px;
-  padding: 18px 28px;
-  background: var(--surface); border-radius: 10px; border: 1px solid var(--border);
-}
-.agenda-num {
-  font-size: 20px; font-weight: 700; font-family: var(--mono);
-  color: var(--accent); min-width: 56px; text-align: center;
-  padding: 7px 14px; background: var(--accent-bg); border-radius: 6px;
-}
-.agenda-text { font-size: 34px; font-weight: 500; color: var(--text); }
-
-/* ─── STEP: DEFINITION ───────────────────────────────────── */
-.step-definition {
-  font-size: 34px; font-weight: 400; line-height: 1.55;
-  color: var(--text); max-width: 1520px; text-wrap: pretty;
-}
-.step-definition em    { font-style: normal; color: var(--accent); font-weight: 500; }
-.step-definition strong { font-weight: 600; }
-
-/* ─── STEP: RULE ─────────────────────────────────────────── */
-.step-rule {
-  background: var(--accent-bg); border-left: 4px solid var(--accent);
-  padding: 18px 26px; border-radius: 0 8px 8px 0;
-  font-size: 28px; color: var(--text); line-height: 1.45;
-}
-.step-rule code    { font-family: var(--mono); font-size: 0.88em; background: rgba(0,0,0,0.07); padding: 2px 7px; border-radius: 4px; }
-.step-rule strong  { font-weight: 600; }
-
-/* ─── STEP: CHIPS ────────────────────────────────────────── */
-.step-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 4px 0; }
-.chips-label { font-size: 22px; color: var(--muted); font-weight: 500; }
-.chip {
-  display: inline-flex; align-items: center;
-  padding: 10px 24px; background: var(--dark); color: #fff;
-  border-radius: 40px; font-size: 25px; font-weight: 500;
-}
-
-/* ─── STEP: FIELD ────────────────────────────────────────── */
-.step-field, .step-file {
-  display: flex; align-items: flex-start; gap: 20px;
-  padding: 16px 22px; background: var(--surface);
-  border-radius: 10px; border: 1px solid var(--border);
-}
-.field-name, .file-name {
-  font-family: var(--mono); font-size: 26px; font-weight: 500;
-  min-width: 220px; padding-top: 2px;
-}
-.field-name { color: var(--dark); }
-.file-name  { color: var(--blue); }
-.field-badge {
-  font-size: 13px; font-weight: 700; letter-spacing: 0.07em;
-  text-transform: uppercase; padding: 4px 10px; border-radius: 4px;
-  align-self: flex-start; margin-top: 4px; min-width: 108px; text-align: center;
-}
-.badge-REQUIS      { background: oklch(91% 0.07 22); color: var(--accent); }
-.badge-Recommandé  { background: oklch(93% 0.05 90); color: oklch(40% 0.14 90); }
-.badge-Recommande  { background: oklch(93% 0.05 90); color: oklch(40% 0.14 90); }
-.badge-Optionnel   { background: oklch(94% 0.02 15); color: var(--muted); }
-.badge-OPTIONNEL   { background: oklch(94% 0.02 15); color: var(--muted); }
-.field-text { flex: 1; }
-.field-desc { font-size: 28px; font-weight: 500; color: var(--text); line-height: 1.3; }
-.field-sub  { font-size: 22px; color: var(--muted); margin-top: 4px; line-height: 1.3; }
-
-/* ─── STEP: FIELD-GROUP ──────────────────────────────────── */
-.fg-label  { font-size: 19px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
-.fg-items  { display: flex; flex-direction: column; gap: 10px; }
-.fg-item   { display: flex; gap: 24px; align-items: baseline; padding: 10px 18px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); }
-.fg-name   { font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--dark); min-width: 160px; }
-.fg-desc   { font-size: 24px; color: var(--muted); line-height: 1.3; }
-
-/* ─── STEP: CODE ─────────────────────────────────────────── */
-.step-code { background: var(--code-bg); border-radius: 10px; overflow: hidden; }
-.code-label { background: oklch(22% 0.05 240); padding: 9px 20px; font-size: 18px; font-family: var(--mono); color: rgba(255,255,255,0.45); letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.06); }
-.code-pre   { padding: 22px 28px; font-size: 23px; font-family: var(--mono); color: var(--code-fg); line-height: 1.65; white-space: pre; overflow: auto; max-height: 500px; }
-.ck { color: oklch(72% 0.15 200); }   /* key   */
-.cv { color: oklch(82% 0.12 120); }   /* value */
-.cs { color: oklch(78% 0.12 150); }   /* string */
-.cd { color: oklch(72% 0.15 200); }   /* dash */
-.cc { color: rgba(255,255,255,0.32); font-style: italic; } /* comment */
-.cm { color: rgba(255,255,255,0.45); } /* markdown text */
-.ch { color: oklch(82% 0.1 55); font-weight: 600; } /* md header */
-
-/* ─── STEP: LOCATION ─────────────────────────────────────── */
-.step-location {
-  display: flex; align-items: flex-start; gap: 28px;
-  padding: 20px 28px; background: var(--surface);
-  border-radius: 10px; border: 1px solid var(--border);
-}
-.loc-scope { font-size: 18px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); min-width: 190px; margin-top: 4px; }
-.loc-path  { font-family: var(--mono); font-size: 26px; font-weight: 500; color: var(--dark); margin-bottom: 10px; }
-.loc-pros  { display: flex; flex-wrap: wrap; gap: 10px; }
-.loc-pro   { font-size: 20px; color: var(--text); padding: 3px 12px; background: oklch(95% 0.015 155); border-radius: 4px; }
-.loc-pro::before { content: '✓ '; color: var(--green); font-weight: 600; }
-
-.step-location-group {
-  background: var(--surface); border-radius: 10px; border: 1px solid var(--border);
-  padding: 18px 28px;
-}
-.loc-group-label { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
-.loc-group-items { display: flex; gap: 36px; }
-.loc-group-path  { font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--dark); margin-bottom: 4px; }
-.loc-group-scope { font-size: 19px; color: var(--muted); }
-
-/* ─── STEP: TWO-COL ──────────────────────────────────────── */
-.step-twocol    { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
-.comp-col       { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 28px 32px; display: flex; flex-direction: column; gap: 16px; }
-.comp-col-label { font-size: 34px; font-weight: 700; }
-.comp-col-label.skill { color: var(--blue); }
-.comp-col-label.agent { color: var(--accent); }
-.comp-col-tagline { font-size: 24px; font-weight: 400; color: var(--muted); margin-top: -8px; }
-.comp-col-items { list-style: none; display: flex; flex-direction: column; gap: 14px; }
-.comp-col-items li { font-size: 26px; color: var(--text); line-height: 1.4; padding-left: 24px; position: relative; }
-.comp-col-items li::before { content: '→'; position: absolute; left: 0; color: var(--muted); }
-
-/* twocol slide type — comparison-col as direct step-item */
-.twocol-body .step-item { display: flex; flex-direction: column; }
-.twocol-body .comp-col  { flex: 1; }
-
-/* ─── STEP: BEST-PRACTICE ────────────────────────────────── */
-.step-bp { display: flex; align-items: flex-start; gap: 18px; padding: 8px 0; }
-.bp-icon { color: var(--accent); font-size: 22px; min-width: 30px; text-align: center; margin-top: 5px; }
-.bp-text { font-size: 29px; line-height: 1.45; color: var(--text); }
-.bp-text code    { font-family: var(--mono); font-size: 0.88em; background: rgba(0,0,0,0.07); padding: 2px 7px; border-radius: 4px; }
-.bp-text strong  { font-weight: 600; }
-
-/* ─── STEP: STRATEGY ─────────────────────────────────────── */
-.step-strategy {
-  background: var(--surface); border-radius: 12px; border: 1px solid var(--border);
-  padding: 24px 28px;
-}
-.strat-rank  { font-size: 16px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
-.strat-title { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-.strat-desc  { font-size: 24px; color: var(--muted); line-height: 1.4; margin-bottom: 12px; }
-.strat-tags  { display: flex; flex-wrap: wrap; gap: 8px; }
-.strat-pro   { font-size: 18px; color: var(--text); padding: 3px 10px; border-radius: 4px; background: oklch(95% 0.015 155); }
-.strat-pro::before { content: '✓ '; color: var(--green); font-weight: 600; }
-.strat-con   { font-size: 18px; color: var(--muted); padding: 3px 10px; border-radius: 4px; background: oklch(95% 0.01 80); }
-.strat-con::before { content: '⚠ '; color: var(--amber); }
-
-/* ─── STEP: DISTRIBUTION ─────────────────────────────────── */
-.step-distribution {
-  background: var(--surface); border-radius: 12px; border: 1px solid var(--border);
-  padding: 32px 36px;
-}
-.dist-rank  { font-size: 16px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
-.dist-title { font-size: 34px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
-.dist-desc  { font-size: 27px; color: var(--muted); line-height: 1.45; }
-
-/* ─── STEP: BULLET ───────────────────────────────────────── */
-.step-bullet { display: flex; align-items: flex-start; gap: 16px; font-size: 28px; line-height: 1.4; padding: 4px 0; }
-.step-bullet::before { content: '→'; color: var(--accent); font-weight: 600; flex-shrink: 0; margin-top: 2px; }
-.step-bullet code { font-family: var(--mono); font-size: 0.9em; background: rgba(0,0,0,0.07); padding: 2px 7px; border-radius: 4px; }
-
-/* ─── TOKEN TABLE ────────────────────────────────────────── */
-.token-grid { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
-.token-grid-header {
-  display: grid; grid-template-columns: 220px 300px 1fr 160px;
-  background: var(--dark); padding: 0;
-}
-.token-grid-header > div {
-  padding: 12px 22px; font-size: 16px; font-weight: 600;
-  letter-spacing: 0.07em; text-transform: uppercase;
-  color: rgba(255,255,255,0.55);
-  border-right: 1px solid rgba(255,255,255,0.08);
-}
-.token-grid-header > div:last-child { border-right: none; }
-.token-row {
-  display: grid; grid-template-columns: 220px 300px 1fr 160px;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-}
-.token-row:nth-child(even) { background: oklch(97% 0.004 15); }
-.token-cell       { padding: 18px 22px; line-height: 1.35; }
-.token-cell-label { font-size: 25px; font-weight: 700; color: var(--text); border-right: 1px solid var(--border); }
-.token-cell-ctx   { font-size: 19px; font-family: var(--mono); color: var(--muted); border-right: 1px solid var(--border); }
-.token-cell-beh   { font-size: 24px; color: var(--text); border-right: 1px solid var(--border); }
-.token-cell-imp   { font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-align: center; }
-.imp-high   { background: oklch(91% 0.07 22); color: var(--accent); }
-.imp-medium { background: oklch(93% 0.06 80); color: oklch(40% 0.14 80); }
-.imp-low    { background: oklch(93% 0.07 140); color: oklch(40% 0.14 140); }
-.imp-zero   { background: var(--blue-bg); color: var(--blue); }
-
-/* ─── COMPARISON TABLE ───────────────────────────────────── */
-.comp-table { width: 100%; border-collapse: collapse; font-size: 27px; }
-.comp-table thead th {
-  padding: 14px 22px; text-align: left;
-  font-size: 22px; font-weight: 700; letter-spacing: 0.04em;
-}
-.comp-table thead th:nth-child(1) { background: var(--dark); color: rgba(255,255,255,0.85); width: 260px; }
-.comp-table thead th:nth-child(2) { background: var(--blue); color: #fff; }
-.comp-table thead th:nth-child(3) { background: var(--accent); color: #fff; }
-.comp-table tbody td { padding: 13px 22px; border-bottom: 1px solid var(--border); line-height: 1.35; vertical-align: top; }
-.comp-table tbody tr:last-child td { border-bottom: none; }
-.comp-table tbody tr:nth-child(even) td { background: rgba(0,0,0,0.018); }
-.td-dim   { font-weight: 600; color: var(--dark); }
-.td-skill { color: var(--blue); }
-.td-agent { color: var(--accent); }
-
-/* ─── DISCUSSION SLIDE ───────────────────────────────────── */
-.slide-discussion-type { background: var(--dark); }
-.disc-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--accent); }
-.disc-content {
-  position: absolute; top: 50%; left: 100px; right: 120px;
-  transform: translateY(-52%);
-}
-.disc-title  { font-size: 80px; font-weight: 700; color: #fff; letter-spacing: -0.02em; margin-bottom: 20px; }
-.disc-prompt { font-size: 38px; color: var(--accent); margin-bottom: 52px; }
-.disc-hints  { display: flex; flex-direction: column; gap: 18px; }
-.disc-hint   { font-size: 27px; color: rgba(255,255,255,0.48); padding-left: 36px; position: relative; line-height: 1.35; }
-.disc-hint::before { content: '💡'; position: absolute; left: 0; opacity: 0.7; }
-
-/* ─── KEYBOARD HINT ──────────────────────────────────────── */
-#hint {
-  position: fixed; bottom: 10px; right: 14px;
-  font-size: 12px; color: rgba(255,255,255,0.18);
-  pointer-events: none; z-index: 999;
-  letter-spacing: 0.04em;
-}
+/* Transitions */
+.slide      { transition: opacity 0.4s ease; }
+.step-item  { transition: opacity 0.38s ease, transform 0.38s ease; }
+/* Code syntax */
+.ck { color: oklch(72% 0.15 200); }
+.cv { color: oklch(82% 0.12 120); }
+.cs { color: oklch(78% 0.12 150); }
+.cd { color: oklch(72% 0.15 200); }
+.cc { color: rgba(255,255,255,.32); font-style: italic; }
+.cm { color: rgba(255,255,255,.45); }
+.ch { color: oklch(82% 0.1 55); font-weight: 600; }
+/* Inline semantic elements in content */
+em     { color: var(--accent); font-style: normal; font-weight: 500; }
+strong { font-weight: 600; }
+code   { font-family: 'IBM Plex Mono', monospace; font-size: .88em;
+         background: rgba(0,0,0,.07); padding: 2px 7px; border-radius: 4px; }
 </style>
 </head>
-<body>
-<div id="stage">
-  <div id="canvas">
+<body class="w-full h-full overflow-hidden bg-[#0d0d0d] font-sans">
+
+<div id="stage" class="w-screen h-screen flex items-center justify-center bg-[#0d0d0d]">
+  <div id="canvas" class="relative w-[1920px] h-[1080px] overflow-hidden origin-center">
     <div id="slides-container"></div>
-    <nav id="progress"></nav>
+    <nav id="progress" class="absolute bottom-0 left-0 right-0 h-[52px] flex z-50"
+         style="background:var(--dark);border-top:1px solid var(--dark-mid)"></nav>
   </div>
 </div>
-<div id="hint">← ↑ Précédent &nbsp;|&nbsp; → ↓ Space Enter Suivant</div>
+
+<div class="fixed bottom-2 right-3 text-[12px] text-white/20 pointer-events-none z-[999] tracking-wide">
+  ← ↑ Précédent &nbsp;|&nbsp; → ↓ Space Enter Suivant
+</div>
 
 <script src="copilot-data.js"></script>
 <script>
-/* ═══════════════════════════════════════════════════════════════
-   MOTEUR DE PRÉSENTATION
-   ═══════════════════════════════════════════════════════════════ */
-let currentSlide = 0;
-let currentStep  = 0;
-const STORAGE_KEY = 'copilot-pres-v2';
+let currentSlide = 0, currentStep = 0;
+const SK = 'copilot-pres-v3';
 
-// ── Escape HTML ──────────────────────────────────────────────
+/* ── Helpers ──────────────────────────────────────────── */
 function e(s) {
-  return String(s)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── Coloration syntaxique YAML / Markdown ────────────────────
 function highlight(code) {
-  let dashes = 0;
+  let d = 0;
   return code.split('\n').map(line => {
-    const t = line.trim();
-    if (t === '---') { dashes++; return `<span class="cd">${e(line)}</span>`; }
-    if (dashes < 2) {
+    if (line.trim() === '---') { d++; return `<span class="cd">${e(line)}</span>`; }
+    if (d < 2) {
       const kv = line.match(/^(\s*)([\w-]+)\s*:\s*(.*)$/);
       if (kv) return `${e(kv[1])}<span class="ck">${e(kv[2])}</span>: ${kv[3] ? `<span class="cv">${e(kv[3])}</span>` : ''}`;
       const li = line.match(/^(\s*)-\s+(.+)$/);
       if (li) return `${e(li[1])}<span class="cd">-</span> <span class="cs">${e(li[2])}</span>`;
       return e(line) || '';
     }
-    if (!t) return '';
-    if (t.startsWith('## ')) return `<span class="ch">${e(line)}</span>`;
+    if (!line.trim()) return '';
+    if (line.trim().startsWith('## ')) return `<span class="ch">${e(line)}</span>`;
     return `<span class="cm">${e(line)}</span>`;
   }).join('\n');
 }
 
-// ── Badge CSS class ──────────────────────────────────────────
-function badgeClass(b) {
-  if (!b) return 'badge-Optionnel';
-  const lo = b.toLowerCase();
-  if (lo === 'requis') return 'badge-REQUIS';
-  if (lo.startsWith('recommand')) return 'badge-Recommandé';
-  return 'badge-Optionnel';
+function badge(b) {
+  const lo = (b||'').toLowerCase();
+  if (lo === 'requis')           return 'bg-[oklch(91%_0.07_22)] text-[var(--accent)]';
+  if (lo.startsWith('recommand'))return 'bg-[oklch(93%_0.05_90)] text-[oklch(40%_0.14_90)]';
+  return 'bg-[oklch(94%_0.02_15)] text-[var(--muted)]';
 }
 
-// ── Rendu d'un step ──────────────────────────────────────────
-function renderStep(step) {
-  switch (step.type) {
+function impactCls(l) {
+  return { high:'bg-[oklch(91%_0.07_22)] text-[var(--accent)]',
+           medium:'bg-[oklch(93%_0.06_80)] text-[oklch(40%_0.14_80)]',
+           low:'bg-[oklch(93%_0.07_140)] text-[oklch(40%_0.14_140)]',
+           zero:'bg-[var(--blue-bg)] text-[var(--blue)]' }[l] || 'bg-gray-100 text-gray-500';
+}
+
+function eyebrow(data, idx) {
+  const sec = PRESENTATION_DATA.sections.find(s => s.id === data.sectionId);
+  return `<div class="h-[52px] min-h-[52px] flex items-center justify-between px-[80px]" style="background:var(--dark)">
+    <span class="text-[17px] font-medium tracking-[0.08em] uppercase text-white/45">${sec?.label||''}</span>
+    <span class="text-[19px] text-white/30">${idx+1} / ${PRESENTATION_DATA.slides.length}</span>
+  </div>`;
+}
+
+function hdr(data) {
+  return `<div class="relative px-[80px] pt-8 pb-7 bg-white border-b-2" style="border-color:var(--border)">
+    <div class="absolute top-0 left-0 right-0 h-1" style="background:var(--accent)"></div>
+    <h2 class="text-[56px] font-bold tracking-tight leading-[1.1]" style="color:var(--text)">${data.title}</h2>
+    ${data.context ? `<p class="mt-1.5 text-[24px] font-mono" style="color:var(--muted)">${e(data.context)}</p>` : ''}
+    ${data.badge   ? `<span class="absolute top-8 right-[80px] text-[19px] font-semibold px-3.5 py-1 border rounded" style="color:var(--accent);border-color:var(--accent-dim)">${data.badge}</span>` : ''}
+  </div>`;
+}
+
+function body(cls, inner) {
+  return `<div class="flex-1 overflow-hidden px-[80px] pt-7 pb-[60px] ${cls}" style="background:var(--bg)">${inner}</div>`;
+}
+
+function wrap(i, cls='') {
+  return `<div class="step-item opacity-0 translate-y-3 pointer-events-none ${cls}" data-step="${i}">`;
+}
+
+/* ── Step renderers ───────────────────────────────────── */
+function step(s) {
+  switch(s.type) {
 
     case 'definition':
-      return `<div class="step-definition">${step.text}</div>`;
+      return `<p class="text-[34px] leading-[1.55] max-w-[1520px]" style="color:var(--text)">${s.text}</p>`;
 
     case 'rule':
-      return `<div class="step-rule">${step.text}</div>`;
+      return `<div class="border-l-4 px-7 py-[18px] rounded-r-xl text-[28px] leading-[1.45]"
+                   style="border-color:var(--accent);background:var(--accent-bg);color:var(--text)">${s.text}</div>`;
 
     case 'chips':
-      return `<div class="step-chips">
-        ${step.label ? `<span class="chips-label">${step.label} :</span>` : ''}
-        ${step.items.map(i => `<span class="chip">${i}</span>`).join('')}
+      return `<div class="flex items-center flex-wrap gap-3.5">
+        ${s.label?`<span class="text-[22px] font-medium mr-2" style="color:var(--muted)">${s.label} :</span>`:''}
+        ${s.items.map(i=>`<span class="px-6 py-2.5 rounded-full text-[25px] font-medium text-white" style="background:var(--dark)">${i}</span>`).join('')}
       </div>`;
 
     case 'field':
-      return `<div class="step-field">
-        <span class="field-name">${step.name}</span>
-        <span class="field-badge ${badgeClass(step.badge)}">${step.badge}</span>
-        <div class="field-text">
-          <div class="field-desc">${step.desc}</div>
-          ${step.sub ? `<div class="field-sub">${step.sub}</div>` : ''}
+      return `<div class="flex items-start gap-5 px-[22px] py-4 bg-white rounded-xl border" style="border-color:var(--border)">
+        <span class="font-mono text-[26px] font-medium min-w-[220px] pt-0.5" style="color:var(--dark)">${s.name}</span>
+        <span class="text-[13px] font-bold tracking-[0.07em] uppercase px-2.5 py-1 rounded self-start mt-1 min-w-[108px] text-center ${badge(s.badge)}">${s.badge}</span>
+        <div class="flex-1">
+          <div class="text-[28px] font-medium leading-[1.3]" style="color:var(--text)">${s.desc}</div>
+          ${s.sub?`<div class="text-[22px] mt-1 leading-[1.3]" style="color:var(--muted)">${s.sub}</div>`:''}
         </div>
       </div>`;
 
     case 'file':
-      return `<div class="step-file">
-        <span class="file-name">${step.name}</span>
-        <span class="field-badge ${badgeClass(step.badge)}">${step.badge||'Optionnel'}</span>
-        <div class="field-text"><div class="field-desc">${step.desc}</div></div>
+      return `<div class="flex items-start gap-5 px-[22px] py-4 bg-white rounded-xl border" style="border-color:var(--border)">
+        <span class="font-mono text-[26px] font-medium min-w-[240px] pt-0.5" style="color:var(--blue)">${s.name}</span>
+        <span class="text-[13px] font-bold tracking-[0.07em] uppercase px-2.5 py-1 rounded self-start mt-1 min-w-[108px] text-center ${badge(s.badge)}">${s.badge||'Optionnel'}</span>
+        <div class="flex-1 text-[28px] font-medium leading-[1.3]" style="color:var(--text)">${s.desc}</div>
       </div>`;
 
     case 'field-group':
       return `<div>
-        <div class="fg-label">${step.label}</div>
-        <div class="fg-items">
-          ${step.fields.map(f => `<div class="fg-item"><span class="fg-name">${f.name}</span><span class="fg-desc">${f.desc}</span></div>`).join('')}
+        <div class="text-[19px] font-bold tracking-[0.08em] uppercase mb-3" style="color:var(--muted)">${s.label}</div>
+        <div class="flex flex-col gap-2.5">
+          ${s.fields.map(f=>`<div class="flex gap-6 items-baseline px-[18px] py-2.5 bg-white rounded-lg border" style="border-color:var(--border)">
+            <span class="font-mono text-[24px] font-medium min-w-[160px]" style="color:var(--dark)">${f.name}</span>
+            <span class="text-[24px] leading-[1.3]" style="color:var(--muted)">${f.desc}</span>
+          </div>`).join('')}
         </div>
       </div>`;
 
     case 'location':
-      return `<div class="step-location">
-        <span class="loc-scope">${step.scope}</span>
+      return `<div class="flex items-start gap-7 px-7 py-5 bg-white rounded-xl border" style="border-color:var(--border)">
+        <span class="text-[18px] font-bold tracking-[0.08em] uppercase min-w-[190px] mt-1" style="color:var(--accent)">${s.scope}</span>
         <div>
-          <div class="loc-path">${e(step.path)}</div>
-          ${step.pros ? `<div class="loc-pros">${step.pros.map(p => `<span class="loc-pro">${p}</span>`).join('')}</div>` : ''}
+          <div class="font-mono text-[26px] font-medium mb-2.5" style="color:var(--dark)">${e(s.path)}</div>
+          ${s.pros?`<div class="flex flex-wrap gap-2.5">${s.pros.map(p=>`<span class="text-[20px] px-3 py-1 rounded" style="background:oklch(95% 0.015 155);color:var(--text)"><span style="color:var(--green);font-weight:600">✓</span> ${p}</span>`).join('')}</div>`:''}
         </div>
       </div>`;
 
     case 'location-group':
-      return `<div class="step-location-group">
-        <div class="loc-group-label">${step.label}</div>
-        <div class="loc-group-items">
-          ${step.items.map(it => `<div class="loc-group-item">
-            <div class="loc-group-path">${e(it.path)}</div>
-            <div class="loc-group-scope">${e(it.scope)}</div>
+      return `<div class="px-7 py-[18px] bg-white rounded-xl border" style="border-color:var(--border)">
+        <div class="text-[20px] font-bold mb-3.5" style="color:var(--accent)">${s.label}</div>
+        <div class="flex gap-9">
+          ${s.items.map(it=>`<div>
+            <div class="font-mono text-[24px] font-medium mb-1" style="color:var(--dark)">${e(it.path)}</div>
+            <div class="text-[19px]" style="color:var(--muted)">${e(it.scope)}</div>
           </div>`).join('')}
         </div>
       </div>`;
 
     case 'two-col':
-      return `<div class="step-twocol">
-        <div class="comp-col">
-          <div class="comp-col-label skill">${step.left.label}</div>
-          ${step.left.tagline ? `<div class="comp-col-tagline">${step.left.tagline}</div>` : ''}
-          <ul class="comp-col-items">${step.left.items.map(i=>`<li>${i}</li>`).join('')}</ul>
-        </div>
-        <div class="comp-col">
-          <div class="comp-col-label agent">${step.right.label}</div>
-          ${step.right.tagline ? `<div class="comp-col-tagline">${step.right.tagline}</div>` : ''}
-          <ul class="comp-col-items">${step.right.items.map(i=>`<li>${i}</li>`).join('')}</ul>
-        </div>
+      const col = (c,color) => `<div class="bg-white rounded-xl border px-8 py-7 flex flex-col gap-4" style="border-color:var(--border)">
+        <div class="text-[34px] font-bold" style="color:var(${color})">${c.label}</div>
+        ${c.tagline?`<div class="text-[24px] -mt-2" style="color:var(--muted)">${c.tagline}</div>`:''}
+        <ul class="flex flex-col gap-3.5 list-none">${c.items.map(i=>`<li class="text-[26px] leading-[1.4] flex gap-2" style="color:var(--text)"><span style="color:var(--muted)">→</span><span>${i}</span></li>`).join('')}</ul>
       </div>`;
+      return `<div class="grid grid-cols-2 gap-7">${col(s.left,'--blue')}${col(s.right,'--accent')}</div>`;
 
     case 'comparison-col':
-      return `<div class="comp-col" style="height:100%">
-        <div class="comp-col-label ${step.label === 'Skill' ? 'skill' : 'agent'}">${step.label}</div>
-        <div class="comp-col-tagline">${step.tagline}</div>
-        <ul class="comp-col-items">${step.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+      return `<div class="h-full bg-white rounded-xl border px-10 py-8 flex flex-col gap-4" style="border-color:var(--border)">
+        <div class="text-[34px] font-bold" style="color:var(${s.label==='Skill'?'--blue':'--accent'})">${s.label}</div>
+        <div class="text-[24px] -mt-2" style="color:var(--muted)">${s.tagline}</div>
+        <ul class="flex flex-col gap-3.5 list-none">${s.items.map(i=>`<li class="text-[26px] leading-[1.4] flex gap-2" style="color:var(--text)"><span style="color:var(--muted)">→</span><span>${i}</span></li>`).join('')}</ul>
       </div>`;
 
     case 'token-row':
-      return `<div class="token-row">
-        <div class="token-cell token-cell-label">${step.label}</div>
-        <div class="token-cell token-cell-ctx">${step.context}</div>
-        <div class="token-cell token-cell-beh">${step.behavior}</div>
-        <div class="token-cell token-cell-imp imp-${step.impactLevel}">${step.impact}</div>
+      return `<div class="grid border-t" style="grid-template-columns:220px 300px 1fr 160px;border-color:var(--border);background:white">
+        <div class="px-[22px] py-[18px] text-[25px] font-bold leading-[1.35] border-r" style="color:var(--text);border-color:var(--border)">${s.label}</div>
+        <div class="px-[22px] py-[18px] text-[19px] font-mono leading-[1.35] border-r" style="color:var(--muted);border-color:var(--border)">${s.context}</div>
+        <div class="px-[22px] py-[18px] text-[24px] leading-[1.35] border-r" style="color:var(--text);border-color:var(--border)">${s.behavior}</div>
+        <div class="px-[22px] py-[18px] text-[22px] font-bold flex items-center justify-center text-center ${impactCls(s.impactLevel)}">${s.impact}</div>
       </div>`;
 
     case 'best-practice':
-      return `<div class="step-bp">
-        <span class="bp-icon">${step.icon}</span>
-        <div class="bp-text">${step.text}</div>
+      return `<div class="flex items-start gap-[18px] py-2">
+        <span class="text-[22px] min-w-[30px] text-center mt-1" style="color:var(--accent)">${s.icon}</span>
+        <div class="text-[29px] leading-[1.45]" style="color:var(--text)">${s.text}</div>
       </div>`;
 
     case 'strategy':
-      return `<div class="step-strategy">
-        <div class="strat-rank">${step.rank}</div>
-        <div class="strat-title">${step.title}</div>
-        <div class="strat-desc">${step.desc}</div>
-        <div class="strat-tags">
-          ${(step.pros||[]).map(p=>`<span class="strat-pro">${p}</span>`).join('')}
-          ${(step.cons||[]).map(c=>`<span class="strat-con">${c}</span>`).join('')}
+      return `<div class="bg-white rounded-xl border px-7 py-6" style="border-color:var(--border)">
+        <div class="text-[16px] font-bold tracking-[0.1em] uppercase mb-2" style="color:var(--accent)">${s.rank}</div>
+        <div class="text-[30px] font-bold mb-2" style="color:var(--text)">${s.title}</div>
+        <div class="text-[24px] leading-[1.4] mb-3" style="color:var(--muted)">${s.desc}</div>
+        <div class="flex flex-wrap gap-2">
+          ${(s.pros||[]).map(p=>`<span class="text-[18px] px-2.5 py-1 rounded" style="background:oklch(95% 0.015 155);color:var(--text)"><span style="color:var(--green);font-weight:600">✓</span> ${p}</span>`).join('')}
+          ${(s.cons||[]).map(c=>`<span class="text-[18px] px-2.5 py-1 rounded" style="background:oklch(95% 0.01 80);color:var(--muted)"><span style="color:var(--amber)">⚠</span> ${c}</span>`).join('')}
         </div>
       </div>`;
 
     case 'distribution':
-      return `<div class="step-distribution">
-        <div class="dist-rank">${step.rank}</div>
-        <div class="dist-title">${step.title}</div>
-        <div class="dist-desc">${step.desc}</div>
+      return `<div class="bg-white rounded-xl border px-9 py-8" style="border-color:var(--border)">
+        <div class="text-[16px] font-bold tracking-[0.1em] uppercase mb-2.5" style="color:var(--accent)">${s.rank}</div>
+        <div class="text-[34px] font-bold mb-3" style="color:var(--text)">${s.title}</div>
+        <div class="text-[27px] leading-[1.45]" style="color:var(--muted)">${s.desc}</div>
       </div>`;
 
     case 'code':
-      return `<div class="step-code">
-        ${step.label ? `<div class="code-label">${step.label}</div>` : ''}
-        <pre class="code-pre">${highlight(step.content)}</pre>
+      return `<div class="rounded-xl overflow-hidden" style="background:var(--code-bg)">
+        ${s.label?`<div class="px-5 py-2.5 text-[18px] font-mono text-white/45 tracking-[0.05em]" style="background:oklch(22% 0.05 240);border-bottom:1px solid rgba(255,255,255,.06)">${s.label}</div>`:''}
+        <pre class="px-7 py-[22px] text-[23px] font-mono leading-[1.65] whitespace-pre overflow-auto max-h-[460px]" style="color:var(--code-fg)">${highlight(s.content)}</pre>
       </div>`;
 
     case 'bullet':
-      return `<div class="step-bullet">${step.text}</div>`;
+      return `<div class="flex items-start gap-4 text-[28px] leading-[1.4]" style="color:var(--text)">
+        <span class="shrink-0 mt-0.5 font-semibold" style="color:var(--accent)">→</span>${s.text}</div>`;
 
     default:
-      return `<div style="color:red;font-size:20px">Step type inconnu: ${step.type}</div>`;
+      return `<div class="text-red-500 text-[20px]">Step inconnu : ${s.type}</div>`;
   }
 }
 
-// ── Barre section + compteur ─────────────────────────────────
-function eyebrow(data, idx) {
-  const sec = PRESENTATION_DATA.sections.find(s => s.id === data.sectionId);
-  const total = PRESENTATION_DATA.slides.length;
-  return `<div class="slide-eyebrow">
-    <span class="eyebrow-section">${sec ? sec.label : ''}</span>
-    <span class="eyebrow-counter">${idx + 1} / ${total}</span>
-  </div>`;
-}
-
-function header(data) {
-  return `<div class="slide-header">
-    <h2 class="slide-title">${data.title}</h2>
-    ${data.context ? `<p class="slide-context">${e(data.context)}</p>` : ''}
-    ${data.badge   ? `<span class="slide-badge">${data.badge}</span>` : ''}
-  </div>`;
-}
-
-// ── Constructeurs de slides ───────────────────────────────────
+/* ── Slide builders ───────────────────────────────────── */
 function buildSlide(data, idx) {
   const el = document.createElement('div');
-  el.className = `slide slide-${data.type}-type`;
+  el.className = `slide slide-${data.type}-type absolute inset-0 w-[1920px] h-[1080px] flex flex-col opacity-0 pointer-events-none`;
   el.id = data.id;
   el.dataset.index = idx;
 
-  switch (data.type) {
+  const steps = (cls='') => data.steps.map((s,i) =>
+    `${wrap(i+1,cls)}${step(s)}</div>`).join('');
+
+  switch(data.type) {
+
     case 'title':
+      el.style.background = 'var(--dark)';
       el.innerHTML = `
-        <div class="title-deco"></div>
-        <div class="title-deco-line"></div>
-        <span class="title-eyebrow-label">${data.meta}</span>
-        <div class="title-content">
-          <h1 class="title-main">${data.title}</h1>
-          <h2 class="title-accent">${data.accent}</h2>
-          <p class="title-tagline">${data.tagline}</p>
+        <div class="absolute right-0 top-0 bottom-0 w-[420px] opacity-40"
+             style="background:linear-gradient(135deg,transparent,var(--dark-mid))"></div>
+        <div class="absolute right-[100px] top-1/2 -translate-y-1/2 w-0.5 h-[320px]"
+             style="background:linear-gradient(to bottom,transparent,var(--accent),transparent)"></div>
+        <span class="absolute top-[56px] left-[100px] text-[20px] font-semibold tracking-[0.18em] uppercase"
+              style="color:var(--accent)">${data.meta}</span>
+        <div class="absolute top-1/2 left-[100px] right-[140px] -translate-y-[52%]">
+          <h1 class="text-[96px] font-bold tracking-tight leading-none text-white mb-2">${data.title}</h1>
+          <h2 class="text-[82px] font-semibold leading-none mb-9" style="color:var(--accent)">${data.accent}</h2>
+          <p class="text-[34px] font-light text-white/60 leading-relaxed max-w-[900px]">${data.tagline}</p>
         </div>
-        <div class="title-meta">${data.meta}</div>`;
+        <div class="absolute bottom-[72px] left-[100px] text-[22px] text-white/25">${data.meta}</div>`;
       break;
 
     case 'section':
+      el.style.background = 'var(--dark)';
       el.innerHTML = `
-        <div class="section-stripe"></div>
-        <div class="section-num-ghost">${data.num}</div>
-        <div class="section-content">
-          <span class="section-badge">Section ${data.num}</span>
-          <h2 class="section-title">${data.title}</h2>
-          <ul class="section-items">${data.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+        <div class="absolute left-0 top-0 bottom-0 w-1.5" style="background:var(--accent)"></div>
+        <div class="absolute right-[-30px] top-1/2 -translate-y-1/2 text-[380px] font-bold leading-none
+                    text-white/[0.03] select-none pointer-events-none">${data.num}</div>
+        <div class="absolute top-1/2 left-[100px] -translate-y-[52%] max-w-[960px]">
+          <span class="inline-block text-[16px] font-bold tracking-[0.14em] uppercase px-4 py-1.5 border rounded mb-7"
+                style="color:var(--accent);border-color:var(--accent)">Section ${data.num}</span>
+          <h2 class="text-[78px] font-bold text-white tracking-tight leading-[1.1] mb-11">${data.title}</h2>
+          <ul class="list-none flex flex-col gap-3.5">
+            ${data.items.map(it=>`<li class="text-[30px] text-white/50 flex gap-3">
+              <span style="color:var(--accent-dim)">—</span><span>${it}</span></li>`).join('')}
+          </ul>
         </div>`;
       break;
 
     case 'agenda':
-      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
-        <div class="slide-body content-body">
-          <div class="agenda-list">
-            ${data.steps.map((s,i) => `
-              <div class="step-item agenda-item" data-step="${i+1}">
-                <span class="agenda-num">${s.num}</span>
-                <span class="agenda-text">${s.text}</span>
-              </div>`).join('')}
-          </div>
-        </div>`;
+      el.style.background = 'var(--bg)';
+      el.innerHTML = `${eyebrow(data,idx)}${hdr(data)}
+        ${body('flex flex-col gap-4',
+          data.steps.map((s,i)=>`
+            <div class="step-item opacity-0 translate-y-3 pointer-events-none flex items-center gap-7 px-7 py-[18px] bg-white rounded-xl border" style="border-color:var(--border)" data-step="${i+1}">
+              <span class="font-mono text-[20px] font-bold min-w-[56px] text-center px-3.5 py-1.5 rounded-lg" style="color:var(--accent);background:var(--accent-bg)">${s.num}</span>
+              <span class="text-[34px] font-medium" style="color:var(--text)">${s.text}</span>
+            </div>`).join('')
+        )}`;
       break;
 
     case 'content':
-      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
-        <div class="slide-body content-body">
-          ${data.steps.map((s,i) => `<div class="step-item" data-step="${i+1}">${renderStep(s)}</div>`).join('')}
-        </div>`;
+      el.style.background = 'var(--bg)';
+      el.innerHTML = `${eyebrow(data,idx)}${hdr(data)}${body('flex flex-col gap-3.5', steps())}`;
       break;
 
     case 'twocol':
-      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
-        <div class="slide-body twocol-body">
-          ${data.steps.map((s,i) => `<div class="step-item" data-step="${i+1}">${renderStep(s)}</div>`).join('')}
-        </div>`;
+      el.style.background = 'var(--bg)';
+      el.innerHTML = `${eyebrow(data,idx)}${hdr(data)}${body('grid grid-cols-2 gap-9 items-start content-start', steps())}`;
       break;
 
     case 'grid': {
-      const cols = data.steps.length >= 3 ? 'cols-3' : '';
-      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
-        <div class="slide-body grid-body ${cols}">
-          ${data.steps.map((s,i) => `<div class="step-item" data-step="${i+1}">${renderStep(s)}</div>`).join('')}
-        </div>`;
+      const cols = data.steps.length>=3 ? 'grid-cols-3' : 'grid-cols-2';
+      el.style.background = 'var(--bg)';
+      el.innerHTML = `${eyebrow(data,idx)}${hdr(data)}${body(`grid ${cols} gap-6 content-start`, steps())}`;
       break;
     }
 
     case 'token':
-      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
-        <div class="slide-body" style="background:var(--bg);padding-top:20px;padding-bottom:20px">
-          <div class="token-grid">
-            <div class="token-grid-header">
-              <div>Source</div><div>Fichier / Mécanisme</div>
-              <div>Comportement</div><div>Impact tokens</div>
+      el.style.background = 'var(--bg)';
+      el.innerHTML = `${eyebrow(data,idx)}${hdr(data)}
+        <div class="flex-1 overflow-hidden px-[80px] pt-5 pb-[60px]" style="background:var(--bg)">
+          <div class="rounded-xl overflow-hidden border" style="border-color:var(--border)">
+            <div class="grid text-[16px] font-semibold tracking-[0.07em] uppercase text-white/55"
+                 style="grid-template-columns:220px 300px 1fr 160px;background:var(--dark)">
+              <div class="px-[22px] py-3 border-r border-white/10">Source</div>
+              <div class="px-[22px] py-3 border-r border-white/10">Fichier / Mécanisme</div>
+              <div class="px-[22px] py-3 border-r border-white/10">Comportement</div>
+              <div class="px-[22px] py-3">Impact tokens</div>
             </div>
-            ${data.steps.map((s,i) => `<div class="step-item" data-step="${i+1}">${renderStep(s)}</div>`).join('')}
+            ${steps()}
           </div>
         </div>`;
       break;
 
     case 'table':
-      el.innerHTML = `${eyebrow(data,idx)}${header(data)}
-        <div class="slide-body table-body" style="background:var(--bg)">
-          <table class="comp-table">
+      el.style.background = 'var(--bg)';
+      el.innerHTML = `${eyebrow(data,idx)}${hdr(data)}
+        <div class="flex-1 overflow-hidden px-[80px] pt-5 pb-[60px]" style="background:var(--bg)">
+          <table class="w-full border-collapse text-[27px]">
             <thead><tr>
-              ${data.columns.map(c=>`<th>${c}</th>`).join('')}
+              <th class="px-[22px] py-3.5 text-left text-[22px] font-bold text-white/85 w-[260px]" style="background:var(--dark)">${data.columns[0]}</th>
+              <th class="px-[22px] py-3.5 text-left text-[22px] font-bold text-white" style="background:var(--blue)">${data.columns[1]}</th>
+              <th class="px-[22px] py-3.5 text-left text-[22px] font-bold text-white" style="background:var(--accent)">${data.columns[2]}</th>
             </tr></thead>
             <tbody>
-              ${data.steps.map((s,i) => `
-                <tr class="step-item" data-step="${i+1}">
-                  <td class="td-dim">${s.cells[0]}</td>
-                  <td class="td-skill">${s.cells[1]}</td>
-                  <td class="td-agent">${s.cells[2]}</td>
+              ${data.steps.map((s,i)=>`
+                <tr class="step-item opacity-0 pointer-events-none" data-step="${i+1}">
+                  <td class="px-[22px] py-[13px] border-b font-semibold" style="color:var(--dark);border-color:var(--border)">${s.cells[0]}</td>
+                  <td class="px-[22px] py-[13px] border-b" style="color:var(--blue);border-color:var(--border)">${s.cells[1]}</td>
+                  <td class="px-[22px] py-[13px] border-b" style="color:var(--accent);border-color:var(--border)">${s.cells[2]}</td>
                 </tr>`).join('')}
             </tbody>
           </table>
@@ -762,129 +384,147 @@ function buildSlide(data, idx) {
       break;
 
     case 'discussion':
+      el.style.background = 'var(--dark)';
       el.innerHTML = `
-        <div class="disc-stripe"></div>
-        <div class="disc-content">
-          <h2 class="disc-title">${data.title}</h2>
-          <p class="disc-prompt">${data.prompt}</p>
-          <div class="disc-hints">
-            ${data.hints.map(h=>`<div class="disc-hint">${h}</div>`).join('')}
+        <div class="absolute left-0 top-0 bottom-0 w-1.5" style="background:var(--accent)"></div>
+        <div class="absolute top-1/2 left-[100px] right-[120px] -translate-y-[52%]">
+          <h2 class="text-[80px] font-bold text-white tracking-tight mb-5">${data.title}</h2>
+          <p class="text-[38px] mb-[52px]" style="color:var(--accent)">${data.prompt}</p>
+          <div class="flex flex-col gap-[18px]">
+            ${data.hints.map(h=>`<div class="text-[27px] text-white/48 leading-[1.35]">💡&nbsp; ${h}</div>`).join('')}
           </div>
         </div>`;
       break;
   }
-
   return el;
 }
 
-// ── Barre de progression ─────────────────────────────────────
+/* ── Progress bar ─────────────────────────────────────── */
 function buildProgress() {
   const nav = document.getElementById('progress');
   nav.innerHTML = PRESENTATION_DATA.sections.map(sec =>
-    `<div class="prog-section" data-sec="${sec.id}" style="flex:${sec.slides.length}">
-      <div class="prog-dots">
-        ${sec.slides.map(si => `<div class="prog-dot" data-slide="${si}"></div>`).join('')}
+    `<div class="prog-sec flex flex-col justify-center gap-1 px-[18px] border-r cursor-pointer
+                 transition-colors hover:bg-[var(--dark-mid)] select-none"
+          style="flex:${sec.slides.length};border-color:var(--dark-mid)"
+          data-sec="${sec.id}">
+      <div class="flex gap-1.5 items-center">
+        ${sec.slides.map(si=>`<div class="prog-dot w-1.5 h-1.5 rounded-full transition-all bg-white/20" data-slide="${si}"></div>`).join('')}
       </div>
-      <div class="prog-label">${sec.label}</div>
+      <div class="prog-lbl text-[13px] font-medium tracking-[0.05em] uppercase whitespace-nowrap text-white/35">${sec.label}</div>
     </div>`
   ).join('');
+
+  nav.querySelectorAll('.prog-sec').forEach(el => {
+    el.addEventListener('click', () => {
+      const sec = PRESENTATION_DATA.sections.find(s => s.id === el.dataset.sec);
+      if (!sec) return;
+      currentSlide = sec.slides[0];
+      currentStep  = 0;
+      activateSlide(currentSlide);
+      applySteps();
+      updateProgress();
+      save();
+    });
+  });
 }
 
 function updateProgress() {
+  const secId = PRESENTATION_DATA.slides[currentSlide]?.sectionId;
   document.querySelectorAll('.prog-dot').forEach(d => {
     const si = +d.dataset.slide;
-    d.classList.toggle('past',    si <  currentSlide);
-    d.classList.toggle('current', si === currentSlide);
+    d.className = `prog-dot w-1.5 h-1.5 rounded-full transition-all ${
+      si  < currentSlide ? 'bg-[var(--accent-dim)]'
+      : si === currentSlide ? 'bg-[var(--accent-hi)] scale-[1.6]'
+      : 'bg-white/20'
+    }`;
   });
-  const secId = PRESENTATION_DATA.slides[currentSlide]?.sectionId;
-  document.querySelectorAll('.prog-section').forEach(s =>
-    s.classList.toggle('active', s.dataset.sec === secId)
-  );
+  document.querySelectorAll('.prog-sec').forEach(s => {
+    const active = s.dataset.sec === secId;
+    s.style.background = active ? 'var(--dark-mid)' : '';
+    s.querySelector('.prog-lbl').style.color = active ? 'rgba(255,255,255,.88)' : '';
+  });
 }
 
-// ── Gestion des steps ────────────────────────────────────────
+/* ── Steps reveal ─────────────────────────────────────── */
 function applySteps() {
   const active = document.querySelector('.slide.active');
   if (!active) return;
   active.querySelectorAll('.step-item').forEach(el => {
-    el.classList.toggle('revealed', +el.dataset.step <= currentStep);
+    const rev = +el.dataset.step <= currentStep;
+    el.classList.toggle('opacity-0',    !rev);
+    el.classList.toggle('translate-y-3',!rev && !el.closest('.slide-table-type') && !el.closest('.slide-token-type'));
+    el.classList.toggle('pointer-events-none', !rev);
+    el.classList.toggle('opacity-100',   rev);
+    el.classList.toggle('translate-y-0', rev);
+    el.classList.toggle('pointer-events-auto', rev);
   });
 }
 
-// ── Activation de slide ──────────────────────────────────────
 function activateSlide(idx) {
-  document.querySelectorAll('.slide').forEach((s, i) => s.classList.toggle('active', i === idx));
+  document.querySelectorAll('.slide').forEach((s,i) => {
+    const on = i === idx;
+    s.classList.toggle('opacity-0',           !on);
+    s.classList.toggle('opacity-100',          on);
+    s.classList.toggle('pointer-events-none', !on);
+    s.classList.toggle('pointer-events-auto',  on);
+    s.classList.toggle('active',               on);
+  });
 }
 
-// ── Navigation ───────────────────────────────────────────────
+/* ── Navigation ───────────────────────────────────────── */
 function forward() {
-  const slides = PRESENTATION_DATA.slides;
-  const max = slides[currentSlide].steps.length;
-  if (currentStep < max) {
-    currentStep++;
-  } else if (currentSlide < slides.length - 1) {
-    currentSlide++;
-    currentStep = 0;
-    activateSlide(currentSlide);
+  const max = PRESENTATION_DATA.slides[currentSlide].steps.length;
+  if (currentStep < max) { currentStep++; }
+  else if (currentSlide < PRESENTATION_DATA.slides.length - 1) {
+    currentSlide++; currentStep = 0; activateSlide(currentSlide);
   }
-  applySteps();
-  updateProgress();
-  save();
+  applySteps(); updateProgress(); save();
 }
 
 function backward() {
-  if (currentStep > 0) {
-    currentStep--;
-  } else if (currentSlide > 0) {
+  if (currentStep > 0) { currentStep--; }
+  else if (currentSlide > 0) {
     currentSlide--;
     currentStep = PRESENTATION_DATA.slides[currentSlide].steps.length;
     activateSlide(currentSlide);
   }
-  applySteps();
-  updateProgress();
-  save();
+  applySteps(); updateProgress(); save();
 }
 
-// ── Persistance ───────────────────────────────────────────────
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ slide: currentSlide, step: currentStep }));
-}
+function save() { localStorage.setItem(SK, JSON.stringify({slide:currentSlide, step:currentStep})); }
 function load() {
   try {
-    const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    currentSlide = Math.min(d.slide || 0, PRESENTATION_DATA.slides.length - 1);
-    currentStep  = d.step  || 0;
-  } catch(ex) {}
+    const d = JSON.parse(localStorage.getItem(SK)||'{}');
+    currentSlide = Math.min(d.slide||0, PRESENTATION_DATA.slides.length-1);
+    currentStep  = d.step||0;
+  } catch(x) {}
 }
 
-// ── Clavier ───────────────────────────────────────────────────
 document.addEventListener('keydown', ev => {
-  switch (ev.key) {
+  switch(ev.key) {
     case 'ArrowRight': case 'ArrowDown': case ' ': case 'Enter':
       ev.preventDefault(); forward(); break;
     case 'ArrowLeft': case 'ArrowUp': case 'Backspace':
       ev.preventDefault(); backward(); break;
     case 'Home':
-      currentSlide = 0; currentStep = 0;
-      activateSlide(0); applySteps(); updateProgress(); save(); break;
+      currentSlide=0; currentStep=0; activateSlide(0); applySteps(); updateProgress(); save(); break;
     case 'End':
-      currentSlide = PRESENTATION_DATA.slides.length - 1;
-      currentStep = PRESENTATION_DATA.slides[currentSlide].steps.length;
+      currentSlide=PRESENTATION_DATA.slides.length-1;
+      currentStep=PRESENTATION_DATA.slides[currentSlide].steps.length;
       activateSlide(currentSlide); applySteps(); updateProgress(); save(); break;
   }
 });
 
-// ── Scaling ───────────────────────────────────────────────────
+/* ── Scale + Init ─────────────────────────────────────── */
 function scale() {
-  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  const s = Math.min(window.innerWidth/1920, window.innerHeight/1080);
   document.getElementById('canvas').style.transform = `scale(${s})`;
 }
 window.addEventListener('resize', scale);
 
-// ── Init ──────────────────────────────────────────────────────
 function init() {
-  const container = document.getElementById('slides-container');
-  PRESENTATION_DATA.slides.forEach((data, idx) => container.appendChild(buildSlide(data, idx)));
+  const c = document.getElementById('slides-container');
+  PRESENTATION_DATA.slides.forEach((d,i) => c.appendChild(buildSlide(d,i)));
   buildProgress();
   load();
   activateSlide(currentSlide);
@@ -892,7 +532,6 @@ function init() {
   updateProgress();
   scale();
 }
-
 init();
 </script>
 </body>
