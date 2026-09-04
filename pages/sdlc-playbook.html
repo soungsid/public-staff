@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le playbook du SDLC natif IA — synthèse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFF1EC;
+    --surface:#FFFFFF;
+    --ink:#171A21;
+    --ink-soft:#4A4F58;
+    --ink-faint:#767C86;
+    --line:#DBDCD4;
+    --line-strong:#C5C7BC;
+    --accent-loop:#3652CC;
+    --accent-loop-soft:#E7EAFA;
+    --accent-add:#1E8A5A;
+    --accent-add-soft:#E4F3EA;
+    --accent-old:#A8433A;
+    --accent-old-soft:#F7E9E7;
+    --accent-warn:#B8752E;
+    --accent-warn-soft:#F6ECDD;
+    --code-bg:#12141B;
+    --code-text:#E4E6EA;
+    --code-green:#7BE0A8;
+    --code-muted:#8B90A0;
+    --radius-s:6px;
+    --radius-m:10px;
+    --serif:'Fraunces', Georgia, serif;
+    --sans:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- progress bar ---------- */
+  #progress{
+    position:fixed; top:0; left:0; height:3px; width:0%;
+    background:var(--accent-loop); z-index:200; transition:width .1s linear;
+  }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns:250px minmax(0,1fr);
+    max-width:1180px;
+    margin:0 auto;
+  }
+  @media (max-width:920px){
+    .shell{grid-template-columns:1fr;}
+  }
+
+  /* ---------- sidebar / TOC ---------- */
+  #toc-toggle{
+    display:none;
+    position:fixed; top:14px; right:14px; z-index:210;
+    width:44px; height:44px; border-radius:50%;
+    background:var(--ink); color:var(--paper); border:none;
+    font-size:18px; cursor:pointer;
+    align-items:center; justify-content:center;
+    box-shadow:0 3px 10px rgba(0,0,0,.25);
+  }
+  nav.toc{
+    position:sticky; top:0; align-self:start;
+    height:100vh; overflow-y:auto;
+    padding:34px 22px 34px 32px;
+    border-right:1px solid var(--line);
+  }
+  nav.toc::-webkit-scrollbar{width:6px;}
+  nav.toc::-webkit-scrollbar-thumb{background:var(--line-strong); border-radius:4px;}
+  .toc-brand{
+    display:block; font-family:var(--mono); font-size:12px; letter-spacing:.02em;
+    color:var(--ink-faint); text-decoration:none; margin-bottom:26px;
+  }
+  .toc-brand strong{color:var(--ink);}
+  .toc-group{margin-bottom:22px;}
+  .toc-group-label{
+    font-family:var(--mono); font-size:11px; color:var(--ink-faint);
+    text-transform:uppercase; letter-spacing:.08em; margin:0 0 8px;
+  }
+  .toc-link{
+    display:flex; gap:8px; align-items:baseline;
+    padding:6px 0; text-decoration:none; color:var(--ink-soft);
+    font-size:14.5px; border-left:2px solid transparent; padding-left:10px;
+    margin-left:-10px; transition:color .15s, border-color .15s;
+  }
+  .toc-link .n{font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);}
+  .toc-link:hover{color:var(--ink);}
+  .toc-link.active{color:var(--accent-loop); border-left-color:var(--accent-loop); font-weight:500;}
+  .toc-link.active .n{color:var(--accent-loop);}
+
+  @media (max-width:920px){
+    #toc-toggle{display:flex;}
+    nav.toc{
+      position:fixed; inset:0 18% 0 0; height:100vh; z-index:205;
+      background:var(--paper); transform:translateX(-105%);
+      transition:transform .25s ease; box-shadow:2px 0 20px rgba(0,0,0,.15);
+      padding-top:70px;
+    }
+    nav.toc.open{transform:translateX(0);}
+  }
+
+  /* ---------- main column ---------- */
+  main{padding:0 40px 90px; min-width:0;}
+  @media (max-width:640px){ main{padding:0 20px 70px;} }
+
+  .content-col{max-width:700px; margin:0 auto;}
+
+  /* ---------- hero ---------- */
+  .hero{
+    max-width:820px; margin:0 auto; padding:64px 40px 20px; text-align:left;
+  }
+  @media (max-width:640px){ .hero{padding:56px 20px 10px;} }
+  .hero-eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:12.5px; color:var(--ink-faint);
+    text-decoration:none; margin-bottom:22px;
+    border:1px solid var(--line-strong); border-radius:20px; padding:6px 14px;
+  }
+  .hero-eyebrow:hover{border-color:var(--accent-loop); color:var(--accent-loop);}
+  h1.hero-title{
+    font-family:var(--serif); font-weight:600; font-size:clamp(2.1rem,5vw,3.4rem);
+    line-height:1.08; margin:0 0 20px; letter-spacing:-.01em;
+  }
+  .hero-title em{font-style:italic; color:var(--accent-loop);}
+  .hero-sub{
+    font-size:1.15rem; color:var(--ink-soft); max-width:56ch; margin:0 0 26px;
+    line-height:1.55;
+  }
+  .hero-meta{
+    display:flex; flex-wrap:wrap; gap:6px 18px; font-size:13.5px; color:var(--ink-faint);
+    font-family:var(--mono); margin-bottom:8px;
+  }
+
+  /* ---------- loop diagram ---------- */
+  .diagram-wrap{
+    max-width:560px; margin:10px auto 6px; padding:0 20px;
+  }
+  .diagram-wrap svg{width:100%; height:auto; display:block;}
+  .track{fill:none; stroke:var(--line-strong); stroke-width:1.5; stroke-dasharray:1 9; stroke-linecap:round;}
+  .arrow{fill:var(--accent-loop); opacity:.75;}
+  .node-circle{fill:var(--surface); stroke:var(--ink); stroke-width:1.6;}
+  .node-num{font-family:var(--mono); font-size:11px; fill:var(--ink-faint);}
+  .node-label{font-family:var(--sans); font-weight:600; font-size:13.5px; fill:var(--ink);}
+  .diagram-caption{
+    text-align:center; font-size:13.5px; color:var(--ink-faint); max-width:46ch;
+    margin:2px auto 60px; line-height:1.55;
+  }
+  .diagram-caption code{background:none; padding:0; color:var(--ink-soft);}
+
+  /* ---------- generic prose ---------- */
+  .content-col p{margin:0 0 18px; color:var(--ink-soft);}
+  .content-col p strong{color:var(--ink); font-weight:600;}
+  .lede{font-size:1.08rem; color:var(--ink); font-weight:400;}
+  code{
+    font-family:var(--mono); background:var(--accent-loop-soft); color:var(--accent-loop);
+    padding:1px 6px; border-radius:4px; font-size:.9em;
+  }
+  a{color:var(--accent-loop);}
+
+  .kicker{
+    display:flex; align-items:center; gap:10px; margin:0 0 10px;
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.04em; color:var(--ink-faint);
+  }
+  .kicker::before{content:""; width:22px; height:1px; background:var(--line-strong);}
+
+  h2.section-title{
+    font-family:var(--serif); font-weight:600; font-size:clamp(1.6rem,3.4vw,2.1rem);
+    margin:0 0 18px; letter-spacing:-.005em;
+  }
+  section.block{padding:56px 0; border-top:1px solid var(--line);}
+  section.block:first-of-type{border-top:none;}
+
+  .callout-list{list-style:none; margin:22px 0; padding:0; display:grid; gap:14px;}
+  .callout-list li{
+    display:grid; grid-template-columns:30px 1fr; gap:12px;
+    padding:16px 18px; background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--radius-m);
+  }
+  .callout-list .num{font-family:var(--serif); font-weight:600; color:var(--accent-loop); font-size:1.1rem;}
+  .callout-list p{margin:0; font-size:14.5px;}
+  .callout-list strong{display:block; color:var(--ink); font-size:15px; margin-bottom:3px; font-weight:600;}
+
+  /* ---------- comparison table (stage overview) ---------- */
+  .overview-table{width:100%; border-collapse:collapse; margin:26px 0 10px; font-size:14px;}
+  .overview-table th, .overview-table td{
+    text-align:left; padding:12px 14px; border:1px solid var(--line); vertical-align:top;
+  }
+  .overview-table thead th{
+    background:var(--ink); color:var(--paper); font-family:var(--mono); font-size:12px;
+    text-transform:uppercase; letter-spacing:.04em; font-weight:500;
+  }
+  .overview-table tbody th{
+    background:var(--surface); font-weight:600; white-space:nowrap; font-family:var(--sans);
+  }
+  .overview-table td:nth-child(2){background:var(--accent-old-soft);}
+  .overview-table td:nth-child(3){background:var(--accent-add-soft);}
+  @media (max-width:640px){
+    .overview-table{display:block; overflow-x:auto; white-space:nowrap;}
+  }
+
+  /* ---------- stage sections ---------- */
+  .stage{padding:70px 0; border-top:1px solid var(--line);}
+  .stage-badge{
+    display:inline-block; font-family:var(--mono); font-size:12.5px; color:var(--accent-loop);
+    background:var(--accent-loop-soft); padding:4px 11px; border-radius:20px; margin-bottom:16px;
+  }
+  h2.stage-title{
+    font-family:var(--serif); font-weight:600; font-size:clamp(1.9rem,4vw,2.6rem);
+    margin:0 0 14px; letter-spacing:-.01em;
+  }
+  .stage-thesis{
+    font-size:1.12rem; color:var(--ink); font-style:italic; font-family:var(--serif);
+    max-width:60ch; margin:0 0 30px; line-height:1.5;
+  }
+
+  /* ---------- diff block: traditional vs AI-native ---------- */
+  .diffblock{
+    display:grid; grid-template-columns:1fr 1fr; gap:0; margin:0 0 34px;
+    border:1px solid var(--line); border-radius:var(--radius-m); overflow:hidden;
+  }
+  @media (max-width:640px){ .diffblock{grid-template-columns:1fr;} }
+  .diffblock > div{padding:18px 20px;}
+  .diffblock .old{background:var(--accent-old-soft); border-right:1px solid var(--line);}
+  .diffblock .new{background:var(--accent-add-soft);}
+  @media (max-width:640px){ .diffblock .old{border-right:none; border-bottom:1px solid var(--line);} }
+  .diffblock .tag{
+    display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:11.5px;
+    text-transform:uppercase; letter-spacing:.05em; margin-bottom:9px; font-weight:500;
+  }
+  .diffblock .old .tag{color:var(--accent-old);}
+  .diffblock .new .tag{color:var(--accent-add);}
+  .diffblock .tag::before{font-family:var(--mono); font-size:14px;}
+  .diffblock .old .tag::before{content:"−";}
+  .diffblock .new .tag::before{content:"+";}
+  .diffblock p{margin:0; font-size:14.5px; color:var(--ink-soft); line-height:1.55;}
+
+  /* ---------- play cards (details/summary) ---------- */
+  .play{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m);
+    margin-bottom:18px; overflow:hidden;
+  }
+  .play > summary{
+    list-style:none; cursor:pointer; padding:18px 22px; font-family:var(--sans);
+    font-weight:600; font-size:16.5px; display:flex; justify-content:space-between;
+    align-items:center; gap:14px;
+  }
+  .play > summary::-webkit-details-marker{display:none;}
+  .play > summary::after{
+    content:"Déplier ↓"; font-family:var(--mono); font-weight:400; font-size:12px;
+    color:var(--ink-faint); white-space:nowrap; flex-shrink:0;
+  }
+  .play[open] > summary::after{content:"Replier ↑";}
+  .play > summary .lead{font-size:14px; font-weight:400; color:var(--ink-soft); display:block; margin-top:4px;}
+  .play-body{padding:2px 22px 24px;}
+  .play-body h4{
+    font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--ink-faint); margin:22px 0 10px; font-weight:500;
+  }
+  .play-body h4:first-child{margin-top:6px;}
+  .play-body p{font-size:14.5px; margin:0 0 12px;}
+  .play-body ol, .play-body ul{margin:0 0 10px; padding-left:20px; font-size:14.5px; color:var(--ink-soft);}
+  .play-body li{margin-bottom:7px;}
+  .meta-pills{display:flex; flex-wrap:wrap; gap:8px 10px; margin-bottom:6px;}
+  .meta-pills span{
+    font-size:12.5px; background:var(--paper); border:1px solid var(--line); border-radius:6px;
+    padding:4px 10px; color:var(--ink-soft);
+  }
+  .meta-pills span b{color:var(--ink); font-weight:600;}
+  .metrics-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:6px;}
+  @media (max-width:560px){ .metrics-grid{grid-template-columns:1fr;} }
+  .metric{background:var(--paper); border-radius:var(--radius-s); padding:12px 14px;}
+  .metric .lbl{font-family:var(--mono); font-size:11px; color:var(--accent-loop); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:5px;}
+  .metric p{margin:0; font-size:13.5px; color:var(--ink-soft);}
+
+  pre{
+    background:var(--code-bg); color:var(--code-text); padding:16px 18px; border-radius:var(--radius-s);
+    overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.6; margin:0 0 14px;
+  }
+  pre code{background:none; padding:0; color:inherit; font-size:inherit;}
+  .filename{
+    font-family:var(--mono); font-size:12px; color:var(--code-muted); margin:0 0 6px; display:block;
+  }
+
+  /* ---------- aside / encadré boxes ---------- */
+  .aside-box{
+    background:var(--accent-warn-soft); border-left:3px solid var(--accent-warn);
+    border-radius:0 var(--radius-m) var(--radius-m) 0; padding:18px 22px; margin:0 0 24px;
+  }
+  .aside-box .tag{
+    font-family:var(--mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--accent-warn); margin-bottom:8px; display:block; font-weight:600;
+  }
+  .aside-box p{font-size:14.5px; margin:0 0 10px;}
+  .aside-box p:last-child{margin-bottom:0;}
+  .aside-box ul{padding-left:18px; font-size:14.5px; margin:10px 0;}
+  .aside-box li{margin-bottom:8px;}
+
+  /* ---------- closing ---------- */
+  .closing-quote{
+    font-family:var(--serif); font-style:italic; font-size:clamp(1.4rem,3vw,1.9rem);
+    line-height:1.4; color:var(--ink); max-width:34ch; margin:22px 0 26px;
+  }
+
+  /* ---------- resources ---------- */
+  .resource-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px;}
+  @media (max-width:560px){ .resource-grid{grid-template-columns:1fr;} }
+  .resource-card{
+    display:block; padding:13px 16px; border:1px solid var(--line); border-radius:var(--radius-s);
+    text-decoration:none; background:var(--surface); font-size:13.5px; color:var(--ink-soft);
+  }
+  .resource-card b{display:block; color:var(--ink); font-weight:600; font-size:14px; margin-bottom:2px;}
+  .resource-card:hover{border-color:var(--accent-loop);}
+
+  footer{
+    padding:50px 0 20px; text-align:center; color:var(--ink-faint); font-size:13px;
+  }
+  footer a{color:var(--ink-faint);}
+
+  #back-top{
+    position:fixed; bottom:22px; right:22px; width:44px; height:44px; border-radius:50%;
+    background:var(--ink); color:var(--paper); border:none; cursor:pointer; font-size:16px;
+    display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none;
+    transition:opacity .2s; z-index:150; box-shadow:0 3px 10px rgba(0,0,0,.25);
+  }
+  #back-top.show{opacity:1; pointer-events:auto;}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<button id="toc-toggle" aria-label="Sommaire">☰</button>
+
+<div class="shell">
+  <nav class="toc" id="toc">
+    <a class="toc-brand" href="#top"><strong>SDLC</strong> natif IA · synthèse</a>
+
+    <div class="toc-group">
+      <p class="toc-group-label">Aperçu</p>
+      <a class="toc-link" href="#constat"><span class="n">—</span> Le constat</a>
+      <a class="toc-link" href="#modele"><span class="n">—</span> Le nouveau modèle</a>
+      <a class="toc-link" href="#plays"><span class="n">—</span> Les « plays »</a>
+    </div>
+
+    <div class="toc-group">
+      <p class="toc-group-label">Les six étapes</p>
+      <a class="toc-link" href="#s1"><span class="n">01</span> Planifier</a>
+      <a class="toc-link" href="#s2"><span class="n">02</span> Concevoir</a>
+      <a class="toc-link" href="#s3"><span class="n">03</span> Construire</a>
+      <a class="toc-link" href="#s4"><span class="n">04</span> Tester</a>
+      <a class="toc-link" href="#s5"><span class="n">05</span> Déployer</a>
+      <a class="toc-link" href="#s6"><span class="n">06</span> Maintenir</a>
+    </div>
+
+    <div class="toc-group">
+      <p class="toc-group-label">Pour finir</p>
+      <a class="toc-link" href="#conclusion"><span class="n">—</span> Conclusion</a>
+      <a class="toc-link" href="#ressources"><span class="n">—</span> Ressources</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <div class="hero">
+      <a class="hero-eyebrow" href="https://claude.com/blog/the-ai-native-sdlc-playbook" target="_blank" rel="noopener">Article original ↗ claude.com/blog</a>
+      <h1 class="hero-title">Le playbook du <em>SDLC natif IA</em></h1>
+      <p class="hero-sub">Le code n'est plus le facteur limitant. Voici, étape par étape, comment Anthropic reconstruit tout le cycle de développement — planifier, concevoir, construire, tester, déployer, maintenir — autour de ce que les agents savent faire aujourd'hui, sans sacrifier le contrôle humain.</p>
+      <div class="hero-meta">
+        <span>Louis Claxton</span>
+        <span>·</span>
+        <span>Blog Anthropic</span>
+        <span>·</span>
+        <span>21 août 2026</span>
+        <span>·</span>
+        <span>synthèse complète</span>
+      </div>
+    </div>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 620 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagramme circulaire des six étapes du SDLC natif IA">
+        <circle class="track" cx="310" cy="320" r="190"/>
+
+        <g class="arrow" transform="translate(405,155.5) rotate(30)"><path d="M-7,-7 L9,0 L-7,7 Z"/></g>
+        <g class="arrow" transform="translate(500,320) rotate(90)"><path d="M-7,-7 L9,0 L-7,7 Z"/></g>
+        <g class="arrow" transform="translate(405,484.5) rotate(150)"><path d="M-7,-7 L9,0 L-7,7 Z"/></g>
+        <g class="arrow" transform="translate(215,484.5) rotate(210)"><path d="M-7,-7 L9,0 L-7,7 Z"/></g>
+        <g class="arrow" transform="translate(120,320) rotate(270)"><path d="M-7,-7 L9,0 L-7,7 Z"/></g>
+        <g class="arrow" transform="translate(215,155.5) rotate(330)"><path d="M-7,-7 L9,0 L-7,7 Z"/></g>
+
+        <g>
+          <circle class="node-circle" cx="310" cy="130" r="44"/>
+          <text class="node-num" x="310" y="122" text-anchor="middle">01</text>
+          <text class="node-label" x="310" y="140" text-anchor="middle">Planifier</text>
+        </g>
+        <g>
+          <circle class="node-circle" cx="474.5" cy="225" r="44"/>
+          <text class="node-num" x="474.5" y="217" text-anchor="middle">02</text>
+          <text class="node-label" x="474.5" y="235" text-anchor="middle">Concevoir</text>
+        </g>
+        <g>
+          <circle class="node-circle" cx="474.5" cy="415" r="44"/>
+          <text class="node-num" x="474.5" y="407" text-anchor="middle">03</text>
+          <text class="node-label" x="474.5" y="425" text-anchor="middle">Construire</text>
+        </g>
+        <g>
+          <circle class="node-circle" cx="310" cy="510" r="44"/>
+          <text class="node-num" x="310" y="502" text-anchor="middle">04</text>
+          <text class="node-label" x="310" y="520" text-anchor="middle">Tester</text>
+        </g>
+        <g>
+          <circle class="node-circle" cx="145.5" cy="415" r="44"/>
+          <text class="node-num" x="145.5" y="407" text-anchor="middle">05</text>
+          <text class="node-label" x="145.5" y="425" text-anchor="middle">Déployer</text>
+        </g>
+        <g>
+          <circle class="node-circle" cx="145.5" cy="225" r="44"/>
+          <text class="node-num" x="145.5" y="217" text-anchor="middle">06</text>
+          <text class="node-label" x="145.5" y="235" text-anchor="middle">Maintenir</text>
+        </g>
+      </svg>
+    </div>
+    <p class="diagram-caption">Le SDLC natif IA n'est pas une ligne mais une boucle : chaque étape se termine en committant un artefact versionné (<code>intent.md</code>, <code>spec.md</code>, <code>plan.md</code>, un diff, une PR, un incident) que l'étape suivante lit pour démarrer — et qui forme, ensemble, la piste d'audit.</p>
+
+    <div class="content-col">
+
+      <section class="block" id="constat">
+        <p class="kicker">Le constat</p>
+        <h2 class="section-title">Le code n'est plus le problème</h2>
+        <p class="lede">Les organisations écrivent du code à une vitesse impensable il y a un an grâce à des outils comme <a href="https://claude.com/product/claude-code" target="_blank" rel="noopener">Claude Code</a>. Mais les processus autour du code — les approbations, les revues, les transferts entre équipes — n'ont pas changé au même rythme, et freinent les gains obtenus.</p>
+        <p>Le cycle de développement logiciel (SDLC) classique compte six étapes — planifier, concevoir, construire, tester, déployer, maintenir — chacune confiée à un rôle différent : les chefs de produit rédigent les besoins, les architectes les transforment en design, les ingénieurs construisent, la QA vérifie, les équipes de release livrent, les opérations surveillent. Le travail circule via des documents, des tickets et des validations.</p>
+        <p>Ce processus lourd avait un sens tant que l'étape la plus coûteuse en temps était l'écriture du code : les spécifications, les rituels d'estimation et les revues de sécurité existaient pour forcer un alignement pendant des semaines ou des mois de développement. Ce n'est plus le cas — et les contrôles traditionnels supposent aussi que chaque étape est réalisée par un humain.</p>
+        <p>Quand la construction devient soudain rapide, trois choses se produisent :</p>
+        <ul class="callout-list">
+          <li>
+            <span class="num">1</span>
+            <p><strong>Le goulot d'étranglement se déplace</strong> vers les étapes qui restent au rythme humain : la planification, la revue/le test, et le déploiement.</p>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <p><strong>Les contrôles deviennent intenables.</strong> Relire chaque ligne à la main avait un sens quand une personne l'avait écrite ; ça ne tient plus quand des agents génèrent l'essentiel du diff.</p>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <p><strong>Le coût de la gouvernance augmente</strong>, car les exceptions passent encore par des comités qui se réunissent chaque semaine ou chaque mois.</p>
+          </li>
+        </ul>
+        <p>Exemple typique : une équipe sécurité est dimensionnée pour un volume de revue humain. Quand des agents multiplient la production de code, soit la file d'attente de revue explose, soit du code part en production sous-revu — deux issues inacceptables pour une organisation régulée. La sécurité et les contrôles de conformité doivent donc, eux aussi, se mettre au rythme des agents.</p>
+      </section>
+
+      <section class="block" id="modele">
+        <p class="kicker">Le nouveau modèle</p>
+        <h2 class="section-title">Qu'est-ce qu'un SDLC « natif IA » ?</h2>
+        <p>C'est un cycle repensé qui conserve les mêmes objectifs de contrôle que le SDLC classique, mais change la manière de les faire respecter. Au lieu d'un flux linéaire, le processus devient <strong>une boucle</strong>, avec l'IA intégrée à chaque point, et un enchaînement automatisé d'une étape vers la suivante. On parle aussi de « SDLC agentique » ou de « développement logiciel agentique » — différents noms pour la même idée.</p>
+        <p>Le fil conducteur, dans toutes les étapes : <strong>l'artefact committé</strong>. Chaque étape se termine en versionnant un fichier dans le contrôle de version — <code>intent.md</code>, <code>spec.md</code>, <code>plan.md</code>, le diff et ses tests, la pull request et ses avis de revue, le dossier d'incident — et l'étape suivante commence en le lisant. Pour les étapes amont, ce sont des fichiers markdown, à la fois lisibles par un humain et exploitables par une machine. À partir de la construction, l'artefact devient le code lui-même et ses enregistrements. La chaîne de commits constitue la piste d'audit complète : qui a demandé quoi, ce que l'agent a produit, qui a approuvé.</p>
+        <p>Les humains restent responsables de toute décision qui exige un jugement — mais leur attention se déplace vers les artefacts à valider, plutôt que vers l'exécution de chaque tâche depuis zéro.</p>
+
+        <table class="overview-table">
+          <thead>
+            <tr><th>Étape</th><th>SDLC traditionnel</th><th>SDLC natif IA</th></tr>
+          </thead>
+          <tbody>
+            <tr><th>Planifier</th><td>Besoins recueillis par comité, distillés via ateliers et validations, rédigés à la main.</td><td>Claude synthétise les problèmes directement depuis leurs sources dans un <code>intent.md</code>, lisible et actionnable.</td></tr>
+            <tr><th>Concevoir</th><td>Spec écrite par des analystes, puis reprise par des designers.</td><td>Besoins et design compressés en une session avec un agent, guidée par des skills versionnées.</td></tr>
+            <tr><th>Construire</th><td>Tests et code écrits à la main ; documentation rédigée après coup.</td><td>Tests et code générés par l'IA ; savoir institutionnel maintenu en fichiers <code>CLAUDE.md</code> et skills versionnés.</td></tr>
+            <tr><th>Tester</th><td>Portes qualité (QA) aux frontières de chaque étape.</td><td>Évaluations continues tissées dans l'implémentation.</td></tr>
+            <tr><th>Déployer</th><td>Revue humaine de chaque ligne ; gouvernance appliquée en cycles, souvent inconstante.</td><td>Couches de revue agentique, revue humaine réservée au code critique/régulé, gouvernance appliquée via des hooks.</td></tr>
+            <tr><th>Maintenir</th><td>Des humains surveillent la production pour trouver des bugs.</td><td>Des agents surveillent la production en continu ; toute dérive redevient un nouveau <code>intent.md</code>.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="block" id="plays">
+        <p class="kicker">Les « plays »</p>
+        <h2 class="section-title">Le cœur du playbook</h2>
+        <p>Les « plays » sont les pratiques concrètes du guide, regroupées en six étapes non linéaires (Planifier, Concevoir, Construire, Tester, Déployer, Maintenir) qui couvrent ensemble tout le cycle de vie. Chaque play couvre systématiquement cinq éléments, repris ci-dessous pour chacun :</p>
+        <div class="meta-pills" style="margin:18px 0 26px;">
+          <span><b>Ce qui change</b></span>
+          <span><b>Pour démarrer</b> — prérequis et infrastructure</span>
+          <span><b>Étapes concrètes</b></span>
+          <span><b>Gouvernance</b></span>
+          <span><b>Comment mesurer</b> le succès</span>
+        </div>
+        <p>Les étapes sont modulaires : une organisation peut choisir de transformer différentes étapes à différents moments selon ses besoins. Chaque play indique ses dépendances (« prérequis ») — on peut commencer par n'importe quel play qui n'a besoin de rien d'autre pour démarrer.</p>
+        <p>Un principe résume la mécanique de bout en bout : un <code>intent.md</code> accepté déclenche le passage besoins/design ; un <code>spec.md</code> approuvé déclenche le mode plan ; une PR fusionnée déclenche le pipeline ; une dérive détectée en production réécrit un nouveau <code>intent.md</code> — et la boucle continue. Au départ, chaque étape est déclenchée à la main ; l'objectif final est une boucle où chaque artefact accepté déclenche automatiquement la porte suivante, et où l'attention humaine se concentre sur ce que l'agent a signalé plutôt que sur le redémarrage de chaque étape.</p>
+      </section>
+
+      <section class="stage" id="s1">
+        <span class="stage-badge">Étape 01 / 06</span>
+        <h2 class="stage-title">Planifier</h2>
+        <p class="stage-thesis">Les idées n'attendent plus qu'on les rédige. L'intention est capturée une seule fois, dans les mots de son auteur, comme un artefact versionné que l'étape suivante peut exploiter directement.</p>
+
+        <div class="diffblock">
+          <div class="old">
+            <span class="tag">Traditionnel</span>
+            <p>Une idée passe par des tickets de backlog, des user stories, des points d'estimation et des réunions de raffinement avant que quiconque puisse agir. La propriété change de mains à chaque transfert, si bien que ce qui arrive chez les ingénieurs est déjà éloigné de l'intention d'origine.</p>
+          </div>
+          <div class="new">
+            <span class="tag">Natif IA</span>
+            <p>L'auteur de l'idée échange avec Claude et consigne le résultat dans un <code>intent.md</code>, un proto-spec dans ses propres termes : ce qui est voulu, pourquoi, et sous quelles contraintes. Les processus répétitifs sont encodés via des skills.</p>
+          </div>
+        </div>
+
+        <details class="play" open>
+          <summary>Capturer l'intention dans <code>intent.md</code><span class="lead">Toute idée — brainstorm personnel, ticket déposé, alerte de supervision — suit le même chemin jusqu'à un fichier versionné.</span></summary>
+          <div class="play-body">
+            <p>Un <code>intent.md</code>, qui lance le processus de développement, peut naître de sources différentes : une personne a une idée, un ticket est déposé, ou un incident remonte via une alerte (voir l'étape 06 — Maintenir). Dans tous les cas, l'auteur brainstorme avec Claude, qui produit un proto-spec en markdown — lisible, versionné, immédiatement exploitable par l'étape suivante.</p>
+            <p>Quelle que soit l'origine (événement déclencheur ou agent), la même règle s'applique : le product owner relit et corrige l'<code>intent.md</code> écrit par l'agent avant qu'il ne soit committé.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : aucun</span>
+              <span><b>Infra</b> : accès Claude pour les non-ingénieurs (claude.ai ou Cowork)</span>
+              <span>Gabarit <code>intent.md</code> partagé</span>
+              <span>Emplacement versionné surveillé par le product owner</span>
+            </div>
+            <p>Le plus simple est un dossier <code>intent/</code> dans le dépôt du produit — cela garde la chaîne d'artefacts à côté du code qui en découle. Un dépôt d'intentions dédié n'est utile que si l'intention couvre de nombreux dépôts. Une fois le dépôt en place, les contributeurs sans expérience git n'ont pas besoin d'utiliser git directement : un connecteur vers l'outil de contrôle de version (GitHub, par exemple) permet à Claude de committer des fichiers markdown en leur nom depuis claude.ai ou Cowork.</p>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>L'auteur décrit le problème à Claude dans ses propres mots : ce qu'il ne peut pas faire aujourd'hui, qui est concerné, à quoi ressemblerait une amélioration, ce qui est hors périmètre. Aucun formalisme requis.</li>
+              <li>On brainstorme jusqu'à ce que l'idée soit concrète — Claude pose les questions qu'un analyste poserait : périmètre, utilisateurs, contraintes, critères de succès.</li>
+              <li>On demande à Claude de rédiger le résultat en <code>intent.md</code> selon le gabarit de l'organisation (encodable en skill, validée par un lead) : problème, résultat proposé, utilisateurs et systèmes concernés, contraintes, questions ouvertes.</li>
+              <li>L'auteur corrige ce que Claude a mal compris.</li>
+              <li>On committe <code>intent.md</code> à l'emplacement partagé. Auteur et horodatage rejoignent l'historique, et le product owner reprend la main.</li>
+            </ol>
+
+            <span class="filename">intent.md</span>
+            <pre><code># Intention : suivi de dossier en libre-service
+Auteur : J. Ortiz (opérations sinistres). Statut : brouillon.
+
+## Problème
+Les clients appellent le centre de contact pour connaître l'état
+de leur dossier. Environ un tiers du temps d'appel y est consacré.
+
+## Résultat proposé
+Les clients voient le statut, la prochaine étape et une date
+estimée directement dans le portail.
+
+## Utilisateurs et systèmes concernés
+Gestionnaires de sinistres, équipe portail, API cœur-sinistres.
+
+## Contraintes
+Pas de nouvelle donnée personnelle dans la session du portail.
+Authentification existante uniquement.
+
+## Questions ouvertes
+Les experts tiers ont-ils aussi besoin d'un accès ?</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>La preuve, c'est le <code>intent.md</code> committé : auteur, horodatage et historique complet des révisions, dans le journal git de l'emplacement partagé. Le product owner approuve ; la décision d'accepter ou de rejeter, qui envoie l'intention vers l'étape « Concevoir », est enregistrée comme un merge ou la clôture d'une revue.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Temps entre la première conversation et le commit d'un <code>intent.md</code> (lu dans l'historique git) — l'objectif est de passer d'un cycle de plusieurs semaines à quelques heures.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Taux de « survie » : part des <code>intent.md</code> acceptés en conception plutôt que clos. Plus le nombre de modifications après le premier <code>spec.md</code> associé.</p></div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="stage" id="s2">
+        <span class="stage-badge">Étape 02 / 06</span>
+        <h2 class="stage-title">Concevoir</h2>
+        <p class="stage-thesis">Besoins et design se fondent en une seule session. La politique de l'organisation s'applique pendant l'écriture de la spec, pas découverte lors d'une revue des semaines plus tard.</p>
+
+        <div class="diffblock">
+          <div class="old">
+            <span class="tag">Traditionnel</span>
+            <p>Besoins et design sont deux phases séparées, menées par des équipes différentes. Les analystes formalisent l'idée en besoins, puis les designers les retraduisent en design. La séparation existe pour la responsabilité, mais elle est lente et source de pertes.</p>
+          </div>
+          <div class="new">
+            <span class="tag">Natif IA</span>
+            <p>Les deux phases se déroulent en une seule session prompée. Claude prend l'<code>intent.md</code> et produit une spec de besoins et de design, contrainte par les skills de l'organisation, avec les points de préoccupation signalés.</p>
+          </div>
+        </div>
+
+        <details class="play">
+          <summary>Besoins et design fusionnés<span class="lead">Une session avec Claude produit une spec complète — guidée par les skills de marque, sécurité, conformité et UX de l'organisation.</span></summary>
+          <div class="play-body">
+            <p>Une fois l'<code>intent.md</code> approuvé par le product owner, Claude produit une spec de besoins et de design, guidée par les <a href="https://code.claude.com/docs/en/skills" target="_blank" rel="noopener">skills</a> de l'organisation pour la marque, la sécurité, la conformité et l'UX. Le product owner relit cette spec, mais ne l'écrit pas : l'objectif est d'obtenir une spec sur laquelle l'équipe d'ingénierie peut planifier, avec les zones de préoccupation déjà signalées.</p>
+            <p>Le front-end en est l'exemple le plus clair : une fois l'<code>intent.md</code> accepté, le product owner maquette dans <a href="https://claude.com/product/design" target="_blank" rel="noopener">Claude Design</a> (bêta) à partir de l'<code>intent.md</code>, itère sur la maquette, puis l'exporte vers Claude Code pour la construction.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : un <code>intent.md</code>, des skills de marque/sécurité/conformité/UX</span>
+              <span><b>Infra</b> : un product owner avec accès à Claude — aucune compétence technique requise</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Le product owner ouvre une session avec les skills de l'organisation disponibles et joint l'<code>intent.md</code>.</li>
+              <li>Le prompt pointe vers l'<code>intent.md</code>, nomme les contraintes et exige que les préoccupations soient signalées. À la main d'abord, puis codifié en commande slash de l'organisation ; ensuite, faire du merge de l'<code>intent.md</code> le déclencheur automatique, avec un job non interactif qui commite <code>spec.md</code> en pull request.</li>
+              <li>Le même product owner relit la spec au regard de l'idée d'origine : résout-elle le problème énoncé ? les questions ouvertes de l'<code>intent.md</code> sont-elles traitées ?</li>
+              <li>Les points signalés sont traités en premier — ce sont ceux qu'un analyste aurait fait remonter. Le product owner les résout avec le propriétaire de la politique concernée avant que l'ingénierie ne voie la spec.</li>
+              <li>On committe <code>spec.md</code> à côté de <code>intent.md</code> : la paire de fichiers enregistre ce qui a été demandé et ce qui a été décidé.</li>
+              <li>Le product owner décide si la spec avance vers la construction, en consultant un lead technique pour tout ce que l'organisation classe à risque élevé. Un humain tranche toujours ; c'est cette acceptation qui déclenche le mode plan de l'étape « Construire ».</li>
+            </ol>
+
+            <span class="filename">le prompt</span>
+            <pre><code>Lis le fichier intent.md ci-joint et produis une spec de besoins
+et de design pour l'intégrer à notre base de code existante.
+Applique les skills à ta disposition pour que le plan respecte
+nos règles de marque, nos politiques de sécurité et nos standards
+UX. Documente entièrement la spec dans spec.md, prête à remettre
+à l'équipe d'ingénierie. Décris clairement toute zone de
+préoccupation, en particulier si des politiques se contredisent.</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>La politique en vigueur est lue et appliquée pendant la rédaction de la spec, au lieu d'être découverte en revue des semaines plus tard. La spec, le prompt qui l'a produite et les versions des skills utilisées sont tous tracés en contrôle de version. Le product owner signe la spec et route les points signalés vers les propriétaires de politique nommés.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Temps écoulé entre le commit de l'<code>intent.md</code> et celui du <code>spec.md</code> correspondant, comparé à l'ancien cycle besoins + design.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Retouches des besoins après le début de la construction : nombre de commits <code>spec.md</code> datés après le premier <code>plan.md</code> du même changement.</p></div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="stage" id="s3">
+        <span class="stage-badge">Étape 03 / 06</span>
+        <h2 class="stage-title">Construire</h2>
+        <p class="stage-thesis">Rien ne s'implémente sans un plan accepté. Le savoir institutionnel devient des fichiers que l'agent lit, et les garde-fous s'exécutent comme du code plutôt que comme des habitudes.</p>
+
+        <div class="diffblock">
+          <div class="old">
+            <span class="tag">Traditionnel</span>
+            <p>Un ingénieur lit le design et commence à écrire du code. La façon dont le changement sera fait — jusqu'aux fichiers et aux tests précis — reste dans sa tête, au mieux dans un commentaire de ticket. Personne d'autre ne peut la relire ; le premier regard extérieur porte sur le diff terminé, quand corriger le tir coûte déjà cher.</p>
+          </div>
+          <div class="new">
+            <span class="tag">Natif IA</span>
+            <p>Le travail démarre par un plan écrit, produit par Claude en <em>mode plan</em>, où il peut lire la base de code sans rien modifier. L'ingénieur corrige le plan avant que le code ne soit écrit, et la version approuvée est committée en <code>plan.md</code> pour que les étapes suivantes puissent la vérifier.</p>
+          </div>
+        </div>
+
+        <details class="play" open>
+          <summary>Le mode plan de Claude Code comme point de départ<span class="lead">L'ingénieur démarre en mode plan, donne la spec approuvée, et itère jusqu'à obtenir un plan qu'un tiers pourrait exécuter seul.</span></summary>
+          <div class="play-body">
+            <p>L'ingénieur démarre une session Claude Code en <a href="https://code.claude.com/docs/en/permission-modes" target="_blank" rel="noopener">mode plan</a>, donne à Claude le <code>spec.md</code> approuvé à l'étape « Concevoir », et le laisse l'interroger, en itérant sur le plan jusqu'à satisfaction.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : <code>intent.md</code> ou <code>spec.md</code> si disponible ; un <code>CLAUDE.md</code> aide</span>
+              <span><b>Infra</b> : Claude Code avec accès au dépôt</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>L'ingénieur démarre la session en mode plan.</li>
+              <li>Il donne à Claude l'<code>intent.md</code> et le <code>spec.md</code>, et demande un plan d'implémentation qui nomme les fichiers qui changent, l'ordre du travail, et les tests qui le prouvent.</li>
+              <li>Il interroge le plan : qu'est-ce que ce changement pourrait casser ? quelle étape est la plus risquée ? quelles autres options Claude a-t-il écartées ?</li>
+              <li>Il itère jusqu'à ce qu'un ingénieur qui n'aurait pas vu la conversation puisse implémenter le changement à partir du seul plan.</li>
+              <li>Le plan approuvé est committé en <code>plan.md</code> — il rejoint la piste d'audit, et la revue de PR (étape « Déployer ») vérifiera le diff final par rapport à lui.</li>
+              <li>Le plan accepté, Claude implémente. Avec un bon plan, l'implémentation tient souvent en une seule passe.</li>
+              <li>Si l'implémentation s'écarte du plan, <code>plan.md</code> est mis à jour dans le même commit — un hook peut forcer cette synchronisation.</li>
+            </ol>
+
+            <span class="filename">plan.md</span>
+            <pre><code># Plan : suivi de dossier en libre-service (intent.md du 02/06/2026)
+
+## Fichiers concernés
+portail/src/sinistres/PanneauStatut.tsx (nouveau),
+api-sinistres/routes/statut.py, api-sinistres/tests/test_statut.py
+
+## Ordre des travaux
+1. Ajouter l'endpoint de statut derrière l'auth existante.
+2. Construire le panneau contre cet endpoint.
+3. Raccorder au menu du portail.
+
+## Risques
+L'API cœur-sinistres limite à 50 req/s ; le panneau doit mettre
+en cache les résultats.
+
+## Preuve
+test_statut.py couvre les quatre états de dossier ; la capture
+d'écran correspond à la maquette approuvée.</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>La revue de conception a lieu avant que le moindre code ne soit généré, quand changer de cap n'est encore qu'une question d'éditer un document. Le mode plan l'impose de lui-même : Claude ne peut pas modifier de fichiers tant que l'ingénieur n'a pas accepté le plan. Les changements de routine sont approuvés par l'ingénieur ; tout ce que l'organisation classe à risque élevé remonte à un lead ou un architecte.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Part des changements fusionnés dès la première passe d'implémentation ; temps entre l'approbation du plan et la PR fusionnée.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Cycles de retouche par changement, et fréquence à laquelle le diff fusionné correspond toujours au <code>plan.md</code> committé.</p></div>
+            </div>
+
+            <h4>Le mode auto</h4>
+            <p>Claude Code peut aussi tourner en <strong>mode auto</strong> : une fois le plan approuvé, Claude applique chaque changement sans validation à chaque édition. À mesure que les garde-fous mûrissent (<code>CLAUDE.md</code> affiné, skills encodant la politique, hooks bloquant les actions dangereuses, suite de tests que Claude peut lancer), l'auto-acceptation devient la norme pour le travail de routine : une spec précise, un rayon d'impact limité, du code déjà couvert par les tests.</p>
+            <p>Le changement de posture est réel : on passe de « regarder l'agent éditer et valider chaque action » à « relire les artefacts après de longues sessions autonomes ». Combiné aux <em>worktrees</em>, le mode auto permet le parallélisme entre individus et équipes, et il est indispensable pour faire tourner le SDLC de façon autonome (voir l'étape « Maintenir »).</p>
+          </div>
+        </details>
+
+        <div class="aside-box">
+          <span class="tag">Encadré — systèmes hérités et source de vérité</span>
+          <p>Les processus SDLC existants suivent déjà des artefacts, mais pas en markdown : tickets dans Jira, besoins dans un outil de traçabilité réglementaire, designs dans Figma, approbations via un comité de changement. Ces systèmes sont difficiles à déplacer, car des auditeurs et régulateurs les acceptent déjà. Le SDLC natif IA doit donc composer avec l'existant.</p>
+          <p>Pour chaque artefact produit, désigner un système comme <strong>source de vérité</strong>, les autres n'en gardant qu'une copie ou un lien :</p>
+          <ul>
+            <li><strong>Le dépôt comme source de vérité</strong> — les artefacts markdown font foi, le système hérité référence les fichiers via les commits. Souvent la configuration la plus propre pour les organisations pilotées par l'ingénierie.</li>
+            <li><strong>Le système hérité comme source de vérité</strong> — Jira, ServiceNow ou l'outil de besoins fait foi ; les artefacts markdown sont des copies de travail. Claude lit l'enregistrement en début de session et réécrit le résultat via un connecteur <a href="https://code.claude.com/docs/en/mcp" target="_blank" rel="noopener">MCP</a>.</li>
+            <li><strong>Le lien comme minimum</strong> — chaque artefact note l'identifiant de l'enregistrement, et chaque enregistrement hérité contient le SHA du commit markdown. Un bon point de départ, en acceptant deux sources de vérité.</li>
+          </ul>
+        </div>
+
+        <details class="play">
+          <summary>Le <code>CLAUDE.md</code><span class="lead">Le contexte qu'un nouvel arrivant aurait besoin — conventions, commandes, architecture, erreurs fréquentes — devient un fichier que l'agent lit à chaque session.</span></summary>
+          <div class="play-body">
+            <p><a href="https://code.claude.com/docs/en/memory" target="_blank" rel="noopener"><code>CLAUDE.md</code></a> donne à Claude le contexte qu'un nouvel arrivant aurait besoin. Un savoir qui vivait autrefois dans les têtes et sur des wikis devient un fichier lu au début de chaque session, entretenu par toute l'équipe et enrichi chaque fois qu'une erreur est constatée.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : aucun</span>
+              <span><b>Infra</b> : un dépôt, Claude Code installé, un ingénieur qui connaît bien le code</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Lancer <code>/init</code> dans le dépôt : Claude génère un premier <code>CLAUDE.md</code> à partir de ce qu'il trouve.</li>
+              <li>Réduire le fichier à ce dont un nouvel arrivant aurait besoin dès le premier jour : commandes de build/test/lint, conventions qui comptent, erreurs récurrentes de Claude.</li>
+              <li>Verser <code>CLAUDE.md</code> dans git, à la racine du dépôt, pour que toute l'équipe partage une seule version, révisée comme du code.</li>
+              <li>Règle pratique : quand Claude fait la même erreur deux fois, la correction va dans <code>CLAUDE.md</code>.</li>
+              <li>Le garder sous une page — Claude le lit entièrement à chaque session, et tout contenu obsolète mange du contexte pour rien.</li>
+            </ol>
+
+            <span class="filename">CLAUDE.md</span>
+            <pre><code># Service de paiements
+
+## Commandes
+- Build : make build
+- Test : make test (unitaire), make itest (intégration, besoin docker)
+- Lint : make lint (tourne en CI ; corriger avant de pousser)
+
+## Conventions
+- Java 21, Spring Boot 3. Pas de nouveau Lombok.
+- Les montants sont toujours en BigDecimal, jamais en double.
+- Chaque endpoint a besoin d'un test d'intégration dans src/itest.
+
+## Architecture
+- api/ contient les contrôleurs REST, core/ la logique métier,
+  adapters/ parle aux systèmes externes.
+- Les événements Kafka sont définis dans schemas/ ; ne jamais
+  éditer les classes générées.
+
+## Ce que Claude comprend mal
+- Ne pas monter de version des dépendances ; c'est l'équipe
+  plateforme qui les gère.
+- Le paquet legacy v1/ est gelé ; les changements vont dans v2/.</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p><code>CLAUDE.md</code> est versionné : les instructions suivies par l'agent sont donc révisables et auditables. Les conventions d'équipe s'appliquent via ce fichier, ses changements sont tracés dans l'historique git, et les code owners approuvent ces changements en revue de PR.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Fréquence à laquelle Claude répète une erreur que <code>CLAUDE.md</code> aurait dû empêcher, suivie via les modifications apportées au fichier.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Temps jusqu'à la première PR fusionnée pour un nouveau membre de l'équipe, lu dans l'historique des PR.</p></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="play">
+          <summary>Les skills comme savoir institutionnel<span class="lead">Un savoir qui doit s'appliquer de façon cohérente devient une instruction explicite, versionnée et mise à jour au même endroit pour tous.</span></summary>
+          <div class="play-body">
+            <p>Règle simple : écrire une skill pour le savoir institutionnel qui doit être appliqué de façon cohérente ; ne pas en écrire pour ce qui relève plutôt de <code>CLAUDE.md</code> ou d'un simple prompt.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : aucun (un <code>CLAUDE.md</code> aide mais n'est pas requis)</span>
+              <span><b>Infra</b> : une politique avec un propriétaire nommé et une source de vérité écrite</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Choisir un savoir aujourd'hui appliqué de façon inconsistante — une norme de sécurité, une convention d'API, une règle de marque.</li>
+              <li>L'écrire comme une skill : un dossier contenant un <code>SKILL.md</code> dont l'en-tête indique quand elle se déclenche et dont le corps indique quoi faire.</li>
+              <li>Placer la skill dans le dépôt sous <code>.claude/skills/&lt;nom&gt;/</code>, ou la distribuer à toute l'organisation via un <a href="https://code.claude.com/docs/en/plugin-marketplaces" target="_blank" rel="noopener">plugin</a>.</li>
+              <li>Vérifier qu'elle se déclenche bien, en demandant la tâche concernée de plusieurs façons différentes.</li>
+              <li>Quand la politique change, mettre à jour la skill et faire valider le changement par le propriétaire de la politique.</li>
+              <li>Les ingénieurs récupèrent automatiquement la nouvelle version à leur prochaine session.</li>
+            </ol>
+
+            <span class="filename">.claude/skills/revue-api-securisee/SKILL.md</span>
+            <pre><code>---
+name: revue-api-securisee
+description: Applique la norme de sécurité API. À utiliser à chaque
+  création/modification d'un endpoint exposé, revue de code d'API,
+  ou génération d'une spec OpenAPI.
+---
+# Revue API sécurisée
+
+Lors de la création ou modification d'un endpoint :
+1. Authentification : chaque endpoint exige le JWT de la gateway ;
+   aucune route anonyme hors /health.
+2. Validation des entrées : valider les corps de requête contre
+   le schéma OpenAPI et rejeter les champs inconnus.
+3. Audit : chaque endpoint modifiant un état émet un événement
+   d'audit (acteur, action, entité, horodatage).
+4. Classification des données : les champs marqués « pii » dans
+   le schéma ne doivent jamais apparaître dans les logs.
+
+Lancer scripts/verifier-endpoints.sh et inclure sa sortie dans le
+résumé de session.</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>Une skill est un contrôle — mais <strong>consultatif</strong>. Elle rend probable l'application de la politique pendant que le code est écrit, mais rien n'oblige une session à s'y conformer. Une politique qui doit toujours tenir a besoin de quelque chose de déterministe derrière la skill : un hook qui bloque l'action, ou une passe de revue qui revérifie la politique en PR. La skill rend les violations rares ; le hook les rend quasi impossibles.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Temps entre l'approbation d'un changement de politique par son propriétaire et la fusion de la skill mise à jour.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Constats de revue de PR citant la politique — devrait tendre vers zéro une fois la skill effective ; si ce n'est pas le cas, elle ne se déclenche pas ou son texte a dérivé.</p></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="play">
+          <summary>Les hooks comme garde-fous de construction<span class="lead">Une skill est un contrôle consultatif ; un hook est la couche déterministe qui l'appuie.</span></summary>
+          <div class="play-body">
+            <p>La plupart des actions de Claude, en implémentation, sont des éditions de fichiers et des commandes shell — c'est donc là que les <a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">hooks</a> déclenchent le plus souvent. Les hooks côté construction peuvent :</p>
+            <ul>
+              <li>bloquer les éditions sur des chemins protégés (classes générées, paquet gelé) ;</li>
+              <li>lancer le formateur et le linter après chaque édition, pour que la dérive ne s'accumule jamais ;</li>
+              <li>empêcher que des identifiants n'atterrissent dans le diff.</li>
+            </ul>
+            <p>Un hook doit soutenir toute skill dont la politique ne souffre aucune exception. Comme il se déclenche à chaque action correspondante, il doit rester rapide et ciblé sur le fichier modifié — les vérifications lourdes (suite de tests complète) se placent plutôt au niveau du commit ou de la PR. Un hook qui demande une validation humaine relève, lui, de l'étape « Déployer » : une invite d'approbation pendant la construction remettrait un humain sur le chemin critique de toutes les sessions qui tournent en parallèle.</p>
+          </div>
+        </details>
+
+        <details class="play">
+          <summary>Sessions parallèles et sous-agents<span class="lead">Un ingénieur peut piloter plusieurs flux de travail en même temps.</span></summary>
+          <div class="play-body">
+            <p>Une <strong>session parallèle</strong> est une instance complète de Claude Code travaillant sur une tâche séparée, dans son propre <a href="https://code.claude.com/docs/en/worktrees" target="_blank" rel="noopener">git worktree</a> ; chaque session ignore tout des autres, seul l'ingénieur qui les pilote fait le lien. Un <a href="https://code.claude.com/docs/en/sub-agents" target="_blank" rel="noopener">sous-agent</a>, lui, tourne à l'intérieur d'une même session, avec son propre contexte et ses propres limites d'outils — adapté aux tâches récurrentes, comme vérifier que l'application fonctionne comme prévu.</p>
+            <p>Les sessions parallèles augmentent le nombre de tâches en vol par ingénieur ; les sous-agents gardent chaque session concentrée sur sa tâche. Le rôle de l'ingénieur devient celui de chef d'orchestre.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : un <code>CLAUDE.md</code> (lu par toutes les sessions) ; une boucle de rétroaction aide aussi</span>
+              <span><b>Infra</b> : un dépôt git, des réglages de permissions qui évitent les invites d'approbation sur les commandes jugées sûres</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Découper le travail en tâches touchant des fichiers différents, en s'appuyant sur le <code>plan.md</code> pour repérer ce qui est vraiment indépendant. Les tâches qui partagent des fichiers restent dans une seule session, l'une après l'autre.</li>
+              <li>Donner à chaque tâche parallèle son propre worktree, par exemple <code>claude --worktree feature-auth</code> dans un terminal et <code>claude --worktree fix-rate-limit</code> dans un autre — un worktree est un checkout séparé sur sa propre branche, ce qui évite les collisions de fichiers.</li>
+              <li>Deux ou trois sessions est un bon point de départ ; le plafond pratique est le nombre de flux qu'une personne peut relire correctement.</li>
+              <li>Transformer les tâches récurrentes en sous-agents, définis en markdown dans <code>.claude/agents/</code>, chacun avec un nom, une description de son usage, et les outils qu'il peut toucher — par exemple un simplificateur de code, un vérificateur qui lance l'app, un chercheur qui explore la base sans saturer le contexte principal. Versionner ces définitions.</li>
+            </ol>
+
+            <span class="filename">.claude/agents/verificateur.md</span>
+            <pre><code>---
+name: verificateur
+description: Lance l'application et vérifie que le changement
+  fonctionne avant que la session ne se déclare terminée
+tools: Bash, Read
+---
+Démarre l'application avec make run. Exerce le comportement modifié
+ainsi que les deux flux voisins les plus proches. Rapporte ce que tu
+as exécuté, ce que tu as observé, et tout comportement qui ne
+correspond pas à plan.md. Ne corrige rien ; rapporte uniquement.</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>Plus de sessions veut dire plus de production : les contrôles doivent donc venir de la configuration du dépôt. Les hooks et réglages de permission s'y appliquent à toutes les sessions, et chaque action est journalisée et attribuée à l'ingénieur qui l'a lancée.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Sessions concurrentes par ingénieur tant que la qualité de revue tient, et part de la journée passée à piloter plutôt qu'à attendre.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Changements fusionnés par ingénieur et par semaine, lu conjointement avec le taux de retouche.</p></div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="stage" id="s4">
+        <span class="stage-badge">Étape 04 / 06</span>
+        <h2 class="stage-title">Tester</h2>
+        <p class="stage-thesis">Chaque session vérifie son propre travail avant qu'un humain ne le voie, et la configuration qui pilote l'agent est testée en régression comme le code qu'elle produit.</p>
+
+        <div class="diffblock">
+          <div class="old">
+            <span class="tag">Traditionnel</span>
+            <p>Le signal indiquant qu'un code fonctionne arrive tard : la CI quelques minutes après, un testeur quelques jours après, la production quelques semaines après. Avec un agent qui produit le code, un signal tardif veut dire qu'une personne doit vérifier toute sa production — et cette personne devient le goulot d'étranglement.</p>
+          </div>
+          <div class="new">
+            <span class="tag">Natif IA</span>
+            <p>La session dispose d'un moyen de vérifier son propre travail avant qu'une personne ne le voie : lancer les tests, le build, prendre la capture d'écran. Claude itère jusqu'à ce que la vérification passe, si bien que ce qui arrive à l'ingénieur l'a déjà franchie.</p>
+          </div>
+        </div>
+
+        <details class="play" open>
+          <summary>Donner à Claude une boucle de rétroaction<span class="lead">Tests, build ou capture d'écran comparée : toujours un moyen objectif de vérifier le travail, avant qu'un humain ne le fasse.</span></summary>
+          <div class="play-body">
+            <p>Ne pas confondre cette boucle avec le sous-agent vérificateur de l'étape « Construire » : la boucle de rétroaction tourne pendant toute la durée de la tâche, autant de fois que nécessaire ; le sous-agent vérificateur est une façon d'empaqueter le contrôle final, dans un contexte neuf, une fois la session convaincue d'avoir terminé — le verdict n'est alors pas coloré par les hypothèses qui ont produit le code.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : aucun</span>
+              <span><b>Infra</b> : une suite de tests et un build lançables en une commande ; pour l'UI, un outil de navigateur ou de capture d'écran via MCP</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Si vérifier le travail exige aujourd'hui une séquence de commandes, l'englober dans une seule cible (<code>make test</code>, <code>npm test</code>) qui sort en erreur si ça échoue.</li>
+              <li>Dans la section Commandes du <code>CLAUDE.md</code>, lister chaque commande avec un exemple de sortie saine.</li>
+              <li>Formuler un objectif quantifiable pour que Claude puisse vérifier seul, par exemple : « tous les tests de test_statut.py passent », « la capture correspond à la maquette jointe », « l'endpoint renvoie 200 avec le nouveau champ ».</li>
+              <li>Pour un correctif de bug, écrire d'abord le test qui échoue. Demander à Claude de reproduire le bug sous forme de test, de vérifier qu'il échoue pour la bonne raison, puis de le committer. Ensuite seulement, demander de le faire passer <em>sans modifier le test</em> — un hook peut interdire cette modification.</li>
+              <li>Pour l'UI, boucler avec une vérification visuelle : donner à Claude un outil de navigateur/capture, lui donner la maquette, et le laisser itérer (implémenter, capturer, comparer, ajuster — deux ou trois tours suffisent en général).</li>
+              <li>Faire de la vérification une condition de « terminé » : l'instruction vit dans <code>CLAUDE.md</code>, avec obligation de lancer les tests et d'en montrer la sortie avant de déclarer une tâche close.</li>
+              <li>Protéger la boucle elle-même : un agent qui corrige du code ne doit pas pouvoir affaiblir le contrôle sur ce code. Un hook bloquant l'édition des fichiers de test pendant une tâche de correction fait ce travail.</li>
+            </ol>
+
+            <span class="filename">CLAUDE.md — bloc de vérification</span>
+            <pre><code>## Vérifier son travail
+
+- Build : make build (doit finir par « Build succeeded »)
+- Test : make test (tout au vert ; ne jamais sauter ou supprimer
+  un test qui échoue)
+- Lint : make lint (zéro avertissement)
+
+Lancer les trois avant de déclarer une tâche terminée, et coller
+la sortie. Si un test échoue, corriger le code — jamais le test.</code></pre>
+
+            <h4>Gouvernance</h4>
+            <div class="meta-pills">
+              <span><b>Ce qui est imposé</b> : vérification avant de déclarer une tâche terminée</span>
+              <span><b>Preuve</b> : sortie littérale de make test/build, ou la comparaison de capture d'écran</span>
+              <span><b>Journalisation</b> : transcript de session + check run de la PR</span>
+              <span><b>Qui approuve</b> : le code owner qui relit la PR</span>
+            </div>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Taux de réussite CI dès la première passe pour les changements écrits par l'agent.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Temps de revue par PR (devrait baisser), et taux d'échec des changements en production.</p></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="play">
+          <summary>Évaluations continues en CI<span class="lead">L'équivalent natif IA des portes qualité : une suite qui tourne dès que la configuration de l'agent change.</span></summary>
+          <div class="play-body">
+            <p>Quand un nouveau modèle remplace l'ancien, ou qu'un prompt est réécrit, la suite d'évaluations dit si l'agent travaille toujours au même niveau. C'est une suite vivante : à mesure que les modèles progressent, certains cas cessent de discriminer et d'autres doivent être ajoutés, issus de la supervision continue. Certaines équipes préfèrent lancer ces évaluations hors ligne, sur un rythme fixe, plutôt qu'à chaque changement.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : <code>CLAUDE.md</code> et la boucle de rétroaction</span>
+              <span><b>Infra</b> : une CI capable de lancer Claude Code de façon non interactive, une clé API avec un budget dédié</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Rassembler 20 à 50 tâches réelles issues de travaux récents, avec leur résultat attendu.</li>
+              <li>Écrire chaque tâche comme une évaluation : le prompt, plus les vérifications qui définissent un résultat acceptable (tests, lint, comportement inchangé, politique respectée).</li>
+              <li>Faire tourner la suite en CI, sur planning et à chaque changement de <code>CLAUDE.md</code>, des skills ou des hooks — cette configuration pilote l'agent et mérite les mêmes tests de régression que le code.</li>
+              <li>Conditionner les changements de configuration aux résultats : un changement de skill qui fait chuter le taux de réussite est relu avant fusion.</li>
+              <li>Chaque incident de production devient une évaluation, écrite par l'équipe concernée, et reste dans la suite comme test de non-régression.</li>
+            </ol>
+
+            <span class="filename">.github/workflows/agent-evals.yml</span>
+            <pre><code>name: Évaluations de l'agent
+on:
+  pull_request:
+    paths: ['CLAUDE.md', '.claude/**']
+  schedule:
+    - cron: '0 2 * * *'
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @anthropic-ai/claude-code
+      - name: Lancer la suite d'évaluations
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          for eval in evals/*.json; do
+            claude -p "$(jq -r '.prompt' $eval)" \
+              --allowedTools "Read,Edit,Bash(make test)" \
+              --output-format json > result.json
+            ./evals/check.sh "$eval" result.json
+          done</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>Le seuil de taux de réussite s'applique comme condition de fusion ; chaque exécution est journalisée pour comparaison dans le temps ; l'équipe propriétaire de la configuration approuve ses changements.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Taux de réussite des évaluations dans le temps, et délai pour transformer un incident de production en évaluation permanente.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Régressions détectées en CI comparées à celles trouvées en production.</p></div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="stage" id="s5">
+        <span class="stage-badge">Étape 05 / 06</span>
+        <h2 class="stage-title">Déployer</h2>
+        <p class="stage-thesis">La revue circule dans les deux sens, et la gouvernance s'applique pendant que l'agent agit. L'agent fait tout jusqu'à la porte de production, jamais au-delà.</p>
+
+        <div class="diffblock">
+          <div class="old">
+            <span class="tag">Traditionnel</span>
+            <p>La capacité de revue était calibrée sur la production humaine. Une PR attend qu'un relecteur la lise en entier, la qualité de la revue varie avec sa charge, et l'auteur relance pendant que la file d'attente grossit.</p>
+          </div>
+          <div class="new">
+            <span class="tag">Natif IA</span>
+            <p>Toutes les PR reçoivent le même jeu de passes de revue, avec des constats classés par gravité. L'attention humaine monte d'un niveau : juger si le changement fait ce que le plan prévoyait, et si le risque est acceptable.</p>
+          </div>
+        </div>
+
+        <details class="play" open>
+          <summary>L'IA dans la boucle de revue de PR<span class="lead">Claude donne des revues et en reçoit — il évalue les PR entrantes et répond aux commentaires sur ses propres PR.</span></summary>
+          <div class="play-body">
+            <p>Cela permet aux ingénieurs de concentrer leur revue sur le comportement, ce qui revient à juger l'intention et le risque.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : <code>CLAUDE.md</code> à jour ; des skills si les passes appliquent des politiques écrites</span>
+              <span><b>Infra</b> : le service managé <a href="https://code.claude.com/docs/en/code-review" target="_blank" rel="noopener">Code Review</a> (aperçu recherche) ou <a href="https://code.claude.com/docs/en/github-actions" target="_blank" rel="noopener">claude-code-action</a> dans votre propre CI ; protection de branche exigeant l'approbation d'un code owner</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Le service Code Review managé est le démarrage le plus rapide (un admin l'active et choisit les dépôts) ; <code>claude-code-action</code> dans sa propre CI convient quand on veut contrôler le pipeline ou router les appels via son propre accord cloud.</li>
+              <li>Le lead technique écrit la politique de revue dans <code>REVIEW.md</code> à la racine du dépôt : bugs et erreurs logiques ; sécurité et vulnérabilités ; conformité au regard de la spec, du plan et des principes de design. <code>REVIEW.md</code> définit aussi ce qui compte comme « important » par opposition à un simple détail, et ce qu'il faut ignorer.</li>
+              <li>Le lead fixe le seuil humain : les constats n'approuvent ni ne bloquent une PR seuls, la protection de branche exige toujours l'approbation d'un code owner.</li>
+              <li>Quand un relecteur ou l'auteur mentionne <code>@claude</code> sur un commentaire de revue, Claude traite le commentaire et pousse le correctif — le fil de la PR garde la trace de la demande et du changement. Pour les PR ouvertes par Claude, on peut aller plus loin et le laisser « garder » la PR jusqu'à la fusion, via une commande qui balaie les commentaires non résolus et les checks en échec jusqu'à ce que la PR soit verte.</li>
+              <li>Les constats de revue nourrissent <code>CLAUDE.md</code> : quand une revue signale une même erreur une deuxième fois, la correction y est ajoutée — et comme la revue lit <code>CLAUDE.md</code>, l'erreur est interceptée dès la PR suivante.</li>
+              <li>Une fois par mois, le lead technique ajuste le dispositif en notant les constats et en plafonnant le volume de détails mineurs dans <code>REVIEW.md</code>.</li>
+            </ol>
+
+            <span class="filename">REVIEW.md</span>
+            <pre><code># Instructions de revue
+
+## Passes
+Lancer trois passes et étiqueter chaque constat avec sa passe :
+- Bugs : erreurs logiques, cas limites cassés, régressions subtiles
+- Sécurité : risques d'injection, failles d'authentification,
+  données personnelles dans les logs
+- Conformité : le changement correspond à spec.md, plan.md et
+  nos principes de design
+
+## Ce que veut dire « Important » ici
+Réserver « Important » aux constats qui casseraient un
+comportement, feraient fuiter des données ou violeraient une
+politique. Le style et le nommage sont des détails mineurs.
+
+## Plafonner les détails mineurs
+Signaler au plus cinq détails mineurs par revue ; résumer le
+reste en un simple compte.
+
+## Ne pas signaler
+Les fichiers générés sous src/gen/ et tout ce que la CI applique
+déjà.</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>La séparation des rôles est préservée : l'agent qui a écrit le code n'a aucun moyen de l'approuver lui-même. La politique de <code>REVIEW.md</code> s'applique à toutes les PR, et les constats, correctifs, notations et approbations sont tous journalisés dans l'historique de la PR, qui devient l'enregistrement d'audit.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Temps jusqu'à la première revue (devrait tomber à quelques minutes), part des commentaires résolus sans qu'un humain touche la branche.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Défauts et vulnérabilités interceptés avant fusion, comparés à ceux qui échappent jusqu'en production.</p></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="play">
+          <summary>Les hooks comme portes d'approbation<span class="lead">Un hook peut aussi demander une validation humaine avant d'agir — utile pour les portes de mise en production.</span></summary>
+          <div class="play-body">
+            <p>Ce play trouve naturellement sa place ici car la porte de release en est le cas le plus net, mais les hooks ne sont pas propres au déploiement : ils s'exécutent partout où Claude agit — par exemple, bloquer l'édition de migrations ou d'infra sans ticket de changement pendant la construction, ou empêcher l'agent de toucher aux fichiers de test pendant un correctif.</p>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>La direction technique, avec la gestion du changement et la conformité, dresse la liste des portes d'approbation humaine qui doivent survivre (validation du changement, autorisation de release, édition de chemins protégés).</li>
+              <li>Chaque porte devient un hook — un script qui s'exécute avant que Claude n'agisse, et qui peut autoriser, demander, ou bloquer.</li>
+              <li>Les hooks d'équipe vivent dans <code>.claude/settings.json</code> (versionné) ; les hooks non négociables vivent dans des réglages managés par la plateforme ou l'IT, que les ingénieurs ne peuvent pas désactiver.</li>
+              <li>Un blocage doit s'expliquer : la raison et le chemin vers l'approbation apparaissent dans la sortie de Claude.</li>
+            </ol>
+
+            <span class="filename">.claude/settings.json</span>
+            <pre><code>{
+    "hooks": {
+      "PreToolUse": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            { "type": "command",
+              "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/porte-production.sh" }
+          ]
+        }
+      ]
+    }
+}</code></pre>
+            <span class="filename">.claude/hooks/porte-production.sh</span>
+            <pre><code>#!/bin/bash
+# Les déploiements en production exigent une autorisation nommée
+cmd=$(jq -r '.tool_input.command' < /dev/stdin)
+if [[ "$cmd" == *"deploy"* && "$cmd" == *"production"* ]]; then
+   if [ -z "$RELEASE_APPROVAL" ]; then
+     echo "Les déploiements en production nécessitent une autorisation de release." >&2
+     exit 2 # exit 2 bloque l'action ; le message remonte à Claude
+   fi
+fi
+exit 0</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>Les hooks <em>sont</em> les portes d'approbation : la condition s'applique à chaque fois, pour tout le monde. Les décisions d'autoriser ou de bloquer sont journalisées avec horodatage, et la porte définit elle-même ce qui compte comme approbation (un ticket de changement validé, la signature du responsable de release).</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Temps d'attente sur chaque porte d'approbation — chaque décision de hook est journalisée avec horodatage et verdict.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Violations de porte parvenues en production, avant et après la mise en place des hooks.</p></div>
+            </div>
+          </div>
+        </details>
+
+        <div class="aside-box">
+          <span class="tag">Exemple concret — réglages managés pour une entreprise régulée</span>
+          <p>Déployés par l'équipe plateforme via MDM ou la console d'admin ; les ingénieurs ne peuvent ni les éditer ni les contourner. Chaque ligne achète un contrôle précis :</p>
+          <ul>
+            <li><code>permissions.deny</code> garde les secrets hors du contexte de l'agent et bloque les sorties réseau arbitraires via les outils ; <code>permissions.allow</code> pré-approuve la boucle sûre du quotidien pour éviter la lassitude des demandes de blocage.</li>
+            <li><code>disableBypassPermissionsMode</code> et <code>allowManagedPermissionRulesOnly</code> : aucun ingénieur, fichier de projet ou option en ligne de commande ne peut élargir les règles.</li>
+            <li><code>sandbox</code> ferme ce que les permissions ne couvrent pas — une commande shell pourrait sinon atteindre le réseau même si un outil est bloqué ; la liste blanche de domaines au niveau OS empêche la fuite.</li>
+            <li><code>failIfUnavailable</code> : Claude Code refuse de démarrer si le bac à sable ne s'initialise pas, et une commande qui échoue dedans ne peut pas être retentée en dehors.</li>
+            <li><code>credentials</code> : une commande shell sandboxée pourrait par défaut lire <code>~/.ssh</code> ou <code>~/.aws/credentials</code> ; ce bloc interdit ces lectures et retire les secrets nommés de l'environnement.</li>
+            <li><code>allowManagedHooksOnly</code> : seules les portes d'approbation officielles s'exécutent ; rien de local ne peut s'y ajouter.</li>
+            <li><code>disableSideloadFlags</code> et <code>strictKnownMarketplaces</code> : toute skill, agent, hook et serveur MCP provient de la marketplace de plugins approuvée par l'organisation, jamais d'un répertoire personnel.</li>
+            <li><code>requiredMinimumVersion</code> refuse de démarrer sous une version plancher que l'organisation a évaluée.</li>
+          </ul>
+          <p>À considérer comme un point de départ à adapter, pas une recommandation à copier — chaque refus se négocie contre une capacité, selon la classification des données du dépôt. Référence complète : <a href="https://code.claude.com/docs/en/settings" target="_blank" rel="noopener">code.claude.com/docs/en/settings</a>.</p>
+        </div>
+
+        <details class="play">
+          <summary>Intégration CI/CD et déploiement<span class="lead">Claude tourne de façon non interactive dans le pipeline pour les étapes de jugement, sandboxé, avec le déploiement exposé via MCP.</span></summary>
+          <div class="play-body">
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : la revue de PR par l'IA et les hooks d'approbation — les portes doivent exister avant que l'automatisation n'accélère quoi que ce soit à travers elles</span>
+              <span><b>Infra</b> : une CI avec claude-code-action ou tout runner capable d'appeler <code>claude -p</code> ; accès modèle via l'API, Bedrock, Foundry ou Vertex ; serveurs MCP pour les cibles de déploiement ; un profil sandbox sans identifiants de production permanents</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Commencer par les étapes de jugement en lecture seule : utiliser <code>claude -p</code> dans un job pour trier un build cassé, résumer un test instable, rédiger le changelog.</li>
+              <li>Ajouter des étapes d'écriture derrière les portes existantes (corriger le lint, mettre à jour la doc générée, répondre aux commentaires de revue via <code>@claude</code>) — tout ce que l'agent écrit arrive en PR via la protection de branche, sans route directe vers la branche principale.</li>
+              <li>Sandboxer l'exécution : les jobs de l'agent tournent en conteneurs, sous politique réseau, avec des jetons courts et scopés, sans identifiants de production par défaut.</li>
+              <li>Exposer le déploiement via MCP : déployer, statut, rollback deviennent des outils scopés par environnement — la capacité de déploiement de l'agent est une liste blanche, pas un script shell avec des identifiants.</li>
+              <li>Graduer l'autonomie par environnement : libre en développement ; en production, l'agent prépare la release et un responsable l'autorise, un hook imposant la porte.</li>
+              <li>Le rollback doit être le chemin le plus répété du pipeline — une commande unique que l'agent peut lancer, testée régulièrement en pré-production, car c'est elle que l'étape « Maintenir » invoque en cas de dérive détectée.</li>
+            </ol>
+
+            <span class="filename">étape de pipeline</span>
+            <pre><code>- name: Trier le build en échec
+  if: failure()
+  run: >
+    claude -p "Lis le journal de build dans out/build.log. Identifie
+    la cause la plus probable, indique si l'échec semble instable ou
+    réel, et écris un résumé de trois lignes pour le fil de la PR." >> triage.md</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>Le principe directeur : l'agent peut agir jusqu'à la porte de production, jamais au-delà. La protection de branche transforme tout ce qu'il écrit en PR ; le hook de déploiement production bloque la release tant qu'un responsable de release nommé ne l'a pas autorisée ; chaque exécution non interactive agit sous sa propre identité, ce qui sépare, dans le journal, ce que l'agent a fait de ce que l'ingénieur déclencheur a fait.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Part des échecs de pipeline triés sans réveiller un humain.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Les métriques DORA, déjà émises par la CI et les outils de déploiement.</p></div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="stage" id="s6">
+        <span class="stage-badge">Étape 06 / 06</span>
+        <h2 class="stage-title">Maintenir</h2>
+        <p class="stage-thesis">La boucle se referme. Un déclencheur invoque Claude sans humain dans la chaîne d'invocation, et ce qu'il trouve revient dans le pipeline sous forme de nouvel <code>intent.md</code>.</p>
+
+        <div class="diffblock">
+          <div class="old">
+            <span class="tag">Traditionnel</span>
+            <p>La maintenance est une phase réactive : tickets et incidents attendent qu'une personne agisse et relance le processus. Une alerte à 3h du matin peut être manquée, un ticket peut dormir dans le backlog, et les actions d'un post-mortem peuvent ne jamais atteindre le code si un autre incendie survient avant.</p>
+          </div>
+          <div class="new">
+            <span class="tag">Natif IA</span>
+            <p>Un déclencheur — dérive détectée, ticket, message, planification — invoque Claude sans humain sur le chemin. Claude diagnostique, n'agit que via des voies contrôlées, et écrit ce qu'il trouve en <code>intent.md</code>, qui repart dans les étapes du cycle. Les humains trient et relisent ce travail, sans plus avoir à le démarrer.</p>
+          </div>
+        </div>
+
+        <p>Jusqu'ici, chaque étape exigeait qu'un humain lance les premières actions. Cette étape bascule vers une exécution <strong>autonome</strong> de Claude pour refermer la boucle : un agent de supervision peut, à la suite d'un ticket de bug, créer un <code>intent.md</code> et traverser seul les phases besoins, plan, construction, test et revue — en mode « headless », avec une porte de confiance indépendante entre chaque étape (une vérification déterministe ou un agent de revue adverse) qui décide si le résultat continue ou remonte à un humain.</p>
+
+        <details class="play" open>
+          <summary>Fermer la boucle<span class="lead">Un script déterministe surveille la production et invoque Claude quand une bande de contrôle est franchie.</span></summary>
+          <div class="play-body">
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : format <code>intent.md</code>, revue de PR par l'IA, hooks d'approbation, un chemin de rollback pour la CI/CD</span>
+              <span><b>Infra</b> : un magasin de métriques interrogeable (Prometheus, API de la CI…), un accès en lecture au dépôt, Claude Code non interactif en CI ou l'<a href="https://platform.claude.com/docs/en/agent-sdk/overview" target="_blank" rel="noopener">Agent SDK</a> pour un service recevant des webhooks</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Choisir une métrique avec une base de référence stable — taux d'échec des tests en CI, taux d'erreurs 5xx post-déploiement, temps de cycle des PR.</li>
+              <li>Écrire le script de détection : typiquement moyenne et écart-type sur une fenêtre glissante, avec des règles de type Western Electric pour capter aussi bien la dérive lente que les pics. Le script est versionné, testé, et la détection reste entièrement déterministe — aucun modèle impliqué.</li>
+              <li>Définir des paliers de réponse en configuration versionnée (<code>bands.yaml</code>) : à 1σ le script se contente de journaliser ; à 2σ il invoque Claude en lecture seule pour diagnostiquer ; à 3σ Claude peut agir, mais seulement en ouvrant une PR vers la porte de revue ou en déclenchant un runbook pré-approuvé.</li>
+              <li>La couche de déclenchement peut être un workflow planifié, un webhook depuis l'outil de supervision existant, ou une tâche cron interne. Claude tourne sans état, comme étape CI non interactive ou service Agent SDK dans un conteneur sandboxé.</li>
+              <li>L'agent écrit son diagnostic en <code>intent.md</code>, au format de l'étape « Planifier » : l'anomalie et ses preuves, un résultat proposé, les systèmes concernés, les questions ouvertes. À partir de là, le constat suit le pipeline normal.</li>
+              <li>Le responsable de service ou l'astreinte trie la file : corriger maintenant, planifier, ou rejeter. Les rejets permettent d'ajuster les seuils et de réduire le bruit.</li>
+              <li>Quand un correctif est livré, ajouter une évaluation pour cet incident, afin de s'en protéger durablement.</li>
+            </ol>
+
+            <span class="filename">bands.yaml — exemple pour le taux d'échec des tests CI</span>
+            <pre><code>metric: taux_echec_tests_ci
+baseline: rolling_30d
+rules: western_electric
+tiers:
+  1sigma: { action: log }
+  2sigma: { action: diagnose,
+            tools: "Read,Grep,Bash(gh run view *)" }
+  3sigma: { action: propose,
+            routes: [pull_request, runbook:rollback-deploy] }</code></pre>
+
+            <h4>Gouvernance</h4>
+            <p>Les seuils des paliers sont imposés par une configuration versionnée, avec permissions et réglages managés interdisant l'accès à la production. Invocations, constats et décisions de tri sont journalisés avec horodatage. Un responsable de service trie et approuve les constats, les changements résultants passent par la porte de revue de PR habituelle, et les runbooks que l'agent peut déclencher ont été approuvés à l'avance.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Temps entre le franchissement d'une bande et un <code>intent.md</code> en file de tri, comparé à l'ancien délai incident → action post-mortem.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Part des constats qui deviennent des correctifs fusionnés, et récurrence des incidents de même classe (devrait baisser avec l'ajout d'évaluations).</p></div>
+            </div>
+
+            <h4>Exemples</h4>
+            <ul>
+              <li>Taux d'échec des tests CI &gt; 3σ : l'agent met le test instable en quarantaine ou ouvre une PR de retour arrière, la porte de revue décide.</li>
+              <li>Taux d'erreurs 5xx post-déploiement &gt; 3σ avec un déploiement dans la fenêtre : l'agent déclenche le pipeline de rollback existant.</li>
+              <li>Temps de cycle des PR qui dérive : l'agent écrit un rapport pour la direction technique — la même mécanique fonctionne donc aussi pour des métriques de process, pas seulement de production.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="play">
+          <summary>Scans récurrents de la base de code<span class="lead">Un scan de sécurité est un constat figé dans le temps ; l'approche native IA le relance en continu, sans humain dans la boucle de déclenchement.</span></summary>
+          <div class="play-body">
+            <p>Un scan de sécurité est une photographie à un instant T, réalisée avec un modèle donné — et les deux moitiés de cette phrase périment vite : le code change chaque semaine, et chaque nouvelle génération de modèle trouve des vulnérabilités que la précédente manquait. <a href="https://claude.com/product/claude-security" target="_blank" rel="noopener">Claude Security</a> est la version hébergée de ce scan planifié : connecter un dépôt GitHub, et les scans tournent sur Claude Mythos 5 dans l'infrastructure d'Anthropic, chaque constat étant validé avant d'être remonté avec un indice de confiance. Les correctifs suggérés se relisent et s'appliquent dans Claude Code sur le web.</p>
+
+            <h4>Pour démarrer</h4>
+            <div class="meta-pills">
+              <span><b>Prérequis</b> : la porte de revue de PR et les hooks d'approbation ; le format <code>intent.md</code> pour les constats trop larges pour une seule PR</span>
+              <span><b>Infra</b> : Claude Security (bêta publique, Claude Enterprise), l'app GitHub d'Anthropic installée, Claude Code sur le web activé, une limite de dépense définie</span>
+            </div>
+
+            <h4>Comment l'exécuter</h4>
+            <ol>
+              <li>Le responsable sécurité connecte les dépôts et les organise en projets par équipe ou service, pour que la propriété des constats soit claire.</li>
+              <li>Premier scan complet des dépôts les plus critiques, à traiter comme une base de référence — il révèle souvent des constats dans du code jugé « propre » jusque-là.</li>
+              <li>Un planning par projet — hebdomadaire par défaut pour les services actifs, scans ciblés sur un dossier ou une branche pour les gros dépôts.</li>
+              <li>Trier les constats avec l'indice de confiance en main ; un rejet est motivé et enregistré, pour éviter qu'il ne revienne comme « nouveau » au scan suivant.</li>
+              <li>Pour un constat borné, ouvrir le correctif suggéré dans Claude Code sur le web, le relire, puis le faire passer par la porte de revue habituelle — l'agent qui propose le correctif ne peut pas l'approuver.</li>
+              <li>Pour tout ce qui dépasse un simple correctif (faiblesse architecturale, motif répété), rédiger un <code>intent.md</code> et repartir de l'étape « Planifier ».</li>
+              <li>Une fois un correctif livré, ajouter une évaluation pour cette classe de vulnérabilité à la suite continue.</li>
+            </ol>
+
+            <h4>Gouvernance</h4>
+            <p>Le scan tourne sous les contrôles d'administration de l'organisation (dépôts connectés, sièges de scan, limite de dépense). Chaque constat porte un résultat de validation et un indice de confiance, chaque rejet une raison — l'historique des scans devient un enregistrement d'audit de ce qui a été trouvé, corrigé, ou consciemment accepté. Les correctifs n'atteignent la production que via la porte de revue de PR, jamais directement depuis le scan.</p>
+
+            <h4>Comment mesurer</h4>
+            <div class="metrics-grid">
+              <div class="metric"><span class="lbl">Indicateur avancé</span><p>Part des dépôts connectés sous planification régulière ; délai entre un constat et l'entrée de son correctif en porte de revue.</p></div>
+              <div class="metric"><span class="lbl">Indicateur retardé</span><p>Vulnérabilités trouvées par le scan planifié vs. trouvées en production ou par signalement externe.</p></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="play">
+          <summary>Claude d'astreinte avec Claude Tag<span class="lead">Claude devient membre à part entière des canaux Slack/Teams, sous sa propre identité — premier répondant sur chaque incident.</span></summary>
+          <div class="play-body">
+            <p>Un incident peut arriver comme un message Slack à 22h sur un canal d'incident, et être traité immédiatement. <a href="https://claude.com/product/tag" target="_blank" rel="noopener">Claude Tag</a> (bêta publique, actuellement sur Slack) fait de Claude un membre de ces canaux, si bien que chaque nouvel incident a un premier répondant, et que la réponse elle-même s'ajoute à la mémoire pour les incidents futurs.</p>
+            <p>La conversation et le savoir institutionnel restent dans le canal ; n'importe qui peut guider ou corriger l'investigation en temps réel, l'historique du canal ajoutant à l'auditabilité. Via l'accès MCP, Claude vérifie que la métrique est revenue à sa base de référence, le confirme dans le fil, puis écrit le post-mortem dans un fichier de leçons versionné que les investigations futures pourront lire.</p>
+            <p>Les incidents ne sont pas le seul travail que Claude Tag récupère : mentionné sur un ticket via MCP ou interpellé dans le canal, Claude trie le travail de la même façon. Un correctif petit et bien borné arrive en PR via la porte de revue ; tout ce qui est plus large devient un <code>intent.md</code> pour l'étape « Planifier » — et la boucle recommence à s'auto-alimenter.</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="block" id="conclusion">
+        <p class="kicker">Conclusion</p>
+        <h2 class="section-title">Le jugement humain reste au-dessus</h2>
+        <p class="closing-quote">« La boucle continue de tourner. Le jugement humain reste au-dessus. »</p>
+        <p>Les modèles et les infrastructures agentiques ont assez progressé pour transformer non seulement la façon d'écrire du code, mais l'ensemble du cycle de développement logiciel. Cette transformation garde le jugement humain au centre du processus, tout en tenant compte des exigences de gouvernance et de régulation des grandes organisations. L'article original consolide les pratiques que l'équipe Applied AI d'Anthropic exécute au quotidien avec ses clients.</p>
+      </section>
+
+      <section class="block" id="ressources">
+        <p class="kicker">Ressources</p>
+        <h2 class="section-title">Pour aller plus loin</h2>
+        <p>La documentation ci-dessous couvre ce dont une équipe plateforme a besoin pour mettre en place ces contrôles, à peu près dans l'ordre où on les déploierait.</p>
+        <div class="resource-grid">
+          <a class="resource-card" href="https://code.claude.com/docs/en/admin-setup" target="_blank" rel="noopener"><b>Admin setup</b>Configurer Claude Code pour son organisation</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/settings" target="_blank" rel="noopener"><b>Settings reference</b>Toutes les clés de configuration, y compris managées</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/server-managed-settings" target="_blank" rel="noopener"><b>Server-managed settings</b>Réglages depuis la console admin</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/permissions" target="_blank" rel="noopener"><b>Permissions</b>Ce que l'agent peut lire, écrire, exécuter</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/sandboxing" target="_blank" rel="noopener"><b>Sandboxing</b>Isolation fichiers/réseau au niveau OS</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/hooks-guide" target="_blank" rel="noopener"><b>Hooks — guide</b>Introduction pratique aux hooks</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener"><b>Hooks — référence</b>Documentation complète</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/skills" target="_blank" rel="noopener"><b>Skills</b>Encoder le savoir institutionnel</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/plugin-marketplaces" target="_blank" rel="noopener"><b>Plugins & marketplaces</b>Distribuer skills et hooks à l'échelle</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/managed-mcp" target="_blank" rel="noopener"><b>Managed MCP</b>Contrôle central de la surface d'outils</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/third-party-integrations" target="_blank" rel="noopener"><b>Déploiement entreprise</b>Bedrock, Vertex, Foundry</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/network-config" target="_blank" rel="noopener"><b>Configuration réseau</b>Réglages entreprise</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/monitoring-usage" target="_blank" rel="noopener"><b>Monitoring</b>Export OpenTelemetry</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/analytics" target="_blank" rel="noopener"><b>Tableau de bord analytics</b>Suivi d'utilisation</a>
+          <a class="resource-card" href="https://platform.claude.com/docs/en/manage-claude/compliance-api" target="_blank" rel="noopener"><b>Compliance API</b>Flux d'activité, récupération/suppression</a>
+          <a class="resource-card" href="https://code.claude.com/docs/en/security" target="_blank" rel="noopener"><b>Modèle de sécurité</b>Vue d'ensemble</a>
+        </div>
+      </section>
+
+      <footer>
+        <p>Synthèse réalisée par Claude à partir de « <a href="https://claude.com/blog/the-ai-native-sdlc-playbook" target="_blank" rel="noopener">The AI-Native SDLC playbook</a> » (Louis Claxton, Blog Anthropic, 21 août 2026). Consultez l'article original pour le texte intégral et les visuels.</p>
+      </footer>
+
+    </div>
+
+  </main>
+</div>
+
+<button id="back-top" aria-label="Retour en haut">↑</button>
+
+<script>
+  // Barre de progression de lecture
+  const progress = document.getElementById('progress');
+  function updateProgress(){
+    const h = document.documentElement;
+    const scrolled = h.scrollTop;
+    const height = h.scrollHeight - h.clientHeight;
+    progress.style.width = height > 0 ? (scrolled / height * 100) + '%' : '0%';
+  }
+  document.addEventListener('scroll', updateProgress, {passive:true});
+  updateProgress();
+
+  // Bouton retour en haut
+  const backTop = document.getElementById('back-top');
+  document.addEventListener('scroll', () => {
+    backTop.classList.toggle('show', window.scrollY > 700);
+  }, {passive:true});
+  backTop.addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
+
+  // Sommaire mobile
+  const tocToggle = document.getElementById('toc-toggle');
+  const toc = document.getElementById('toc');
+  tocToggle.addEventListener('click', () => toc.classList.toggle('open'));
+  toc.querySelectorAll('a').forEach(a => a.addEventListener('click', () => toc.classList.remove('open')));
+
+  // Surlignage du lien actif dans le sommaire
+  const links = Array.from(document.querySelectorAll('.toc-link'));
+  const targets = links
+    .map(l => document.querySelector(l.getAttribute('href')))
+    .filter(Boolean);
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const id = '#' + entry.target.id;
+      const link = links.find(l => l.getAttribute('href') === id);
+      if (!link) return;
+      if (entry.isIntersecting){
+        links.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      }
+    });
+  }, {rootMargin:'-15% 0px -70% 0px', threshold:0});
+
+  targets.forEach(t => observer.observe(t));
+</script>
+</body>
+</html>
