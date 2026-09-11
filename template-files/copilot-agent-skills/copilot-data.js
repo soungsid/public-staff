@@ -6,7 +6,6 @@ const PRESENTATION_DATA = {
   meta: {
     title: "GitHub Copilot — Personnaliser son assistant",
     subtitle: "Skills, agents, hooks et plugins",
-    date: "Septembre 2026",
     audience: "Équipe de développeurs — première approche"
   },
 
@@ -54,7 +53,7 @@ const PRESENTATION_DATA = {
       title: "GitHub Copilot",
       accent: "Le personnaliser",
       tagline: "Skills, agents, hooks et plugins — comment lui apprendre notre façon de travailler",
-      meta: "Septembre 2026 · Équipe développeurs",
+      meta: "Équipe développeurs",
       steps: []
     },
 
@@ -238,33 +237,33 @@ const PRESENTATION_DATA = {
     {
       id: "s11", type: "content", sectionId: "sharing",
       title: "Où ça vit — et donc qui y a accès",
+      context: "Le bon emplacement dépend d'une seule question : qui doit s'en servir ?",
       steps: [
         {
-          type: "location", scope: "Dans le projet",
+          type: "location", scope: "Propre à un projet",
           path: ".github/agents/ · .github/skills/",
-          pros: ["Versionné avec le code", "Disponible dès le clone du repo", "Évolue en pull request, donc relu"]
+          when: "La place par défaut. Si l'outil parle de <strong>ce</strong> code — ses conventions, son domaine — il vit avec lui.",
+          pros: ["Versionné avec le code", "Disponible dès le clone", "Relu en pull request"]
         },
         {
-          type: "location", scope: "Sur ma machine",
+          type: "location", scope: "Utile à toute l'équipe",
+          path: "Un plugin, publié sur un marketplace",
+          when: "Dès qu'un outil sert dans <strong>deux</strong> projets, le copier-coller devient une dette : on l'empaquette une fois.",
+          pros: ["Une seule version pour tous", "Mise à jour d'une commande", "Découvrable sans demander"]
+        },
+        {
+          type: "location", scope: "Personnel",
           path: "~/.copilot/agents/ · ~/.copilot/skills/",
-          pros: ["Présent dans tous mes projets", "Aucune configuration par repo", "Idéal pour mes outils perso"]
-        },
-        {
-          type: "location", scope: "Repo d'équipe",
-          path: "mon-org/copilot-toolbox",
-          pros: ["Un seul endroit pour toute l'équipe", "Pas de duplication entre projets", "Versionnable par releases"]
-        },
-        {
-          type: "location-group",
-          label: "Emplacements également reconnus — un skill écrit une fois sert aux deux assistants",
-          items: [
-            { path: ".claude/skills/<nom>/", scope: "Projet · Claude Code + Copilot" },
-            { path: ".agents/skills/<nom>/", scope: "Projet · format neutre" }
-          ]
+          when: "Mes outils à moi, dans tous mes projets — sans rien imposer à l'équipe.",
+          pros: ["Aucune configuration par repo", "Surcharge la version du projet"]
         },
         {
           type: "rule",
-          text: "En cas de doublon, la version <strong>personnelle</strong> prend le dessus sur celle du projet — on peut donc surcharger un outil d'équipe sans toucher au repo."
+          text: "<strong>Plugin</strong> : un paquet installable qui regroupe agents, skills et hooks. <strong>Marketplace</strong> : le catalogue où l'équipe publie ses plugins et pioche ceux des autres. On y revient en section 04."
+        },
+        {
+          type: "bullet",
+          text: "Un skill rangé dans <code>.claude/skills/</code> est lu par Copilot <strong>et</strong> par Claude Code — écrit une fois, utile aux deux."
         }
       ]
     },
@@ -325,7 +324,7 @@ const PRESENTATION_DATA = {
     {
       id: "s15", type: "content", sectionId: "extend",
       title: "Les plugins",
-      context: "Le format officiel pour distribuer tout ce qu'on vient de voir",
+      context: "La réponse au cas « utile à toute l'équipe » de tout à l'heure",
       steps: [
         {
           type: "definition",
@@ -342,23 +341,24 @@ const PRESENTATION_DATA = {
     {
       id: "s16", type: "grid", sectionId: "extend",
       title: "Distribution & marketplace",
+      context: "Trois niveaux — on commence par le premier, on passe au suivant quand le besoin apparaît",
       steps: [
         {
-          type: "distribution", rank: "Le plus simple",
+          type: "distribution", rank: "Pour démarrer",
           title: "Dépôt Git ou dossier local",
-          desc: "On installe depuis un dépôt GitHub, public ou privé — ou depuis un simple chemin local.",
+          desc: "On installe depuis un dépôt GitHub, public ou privé. Suffisant tant qu'on est quelques-uns à savoir que le plugin existe.",
           cmd: "copilot plugin install org/toolbox"
         },
         {
-          type: "distribution", rank: "À l'échelle de l'équipe",
+          type: "distribution", rank: "Recommandé en équipe",
           title: "Marketplace",
-          desc: "Un catalogue déclaré une fois, que chacun parcourt et installe à la demande. Deux sont fournis d'office : copilot-plugins et awesome-copilot.",
+          desc: "Un catalogue déclaré une fois, que chacun parcourt et installe à la demande. À privilégier dès que plusieurs plugins circulent, ou que de nouveaux arrivants doivent les trouver seuls.",
           cmd: "copilot plugin marketplace add org/repo"
         },
         {
           type: "distribution", rank: "Gouvernance",
           title: "Déploiement centralisé",
-          desc: "Les administrateurs peuvent imposer un jeu de plugins à toute l'organisation — tout le monde travaille alors avec les mêmes règles, sans rien installer."
+          desc: "Les administrateurs imposent un jeu de plugins à toute l'organisation. Utile quand un outil n'est pas optionnel — une règle de sécurité, un format de PR obligatoire."
         }
       ]
     },

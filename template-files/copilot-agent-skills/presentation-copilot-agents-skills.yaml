@@ -6,7 +6,9 @@ presentation:
   titre: "GitHub Copilot — Personnaliser son assistant"
   sous_titre: "Skills, agents, hooks et plugins"
   audience: "Équipe de développeurs — première approche du sujet"
-  date: "2026-09-11"
+  date: >
+    Aucune date affichée, volontairement : le support doit rester réutilisable
+    d'une session à l'autre sans retouche.
   objectif: >
     Introduire un public qui ne connaît ni les agents, ni les skills, ni les hooks,
     ni les plugins ou le marketplace. On vise la compréhension du vocabulaire et
@@ -30,6 +32,18 @@ presentation:
     - >
       Les emplacements de fichiers sont traités une seule fois, pour les agents et
       les skills ensemble : ce sont les mêmes portées.
+    - >
+      Le partage n'est pas présenté comme une recommandation unique mais comme un
+      arbitrage : dans le repo si l'outil est propre au projet, en plugin publié
+      sur un marketplace s'il sert à toute l'équipe, en ~/.copilot s'il est perso.
+      Chaque portée porte une phrase disant quand la choisir.
+
+  accessibilite:
+    - >
+      Sur les fonds sombres (slide titre, slides de section, slide de discussion),
+      le texte secondaire est à 75-85 % d'opacité et le rouge est éclairci
+      (--accent-on-dark). Le rouge de base (--accent) est réservé aux fonds clairs :
+      sur le bordeaux il paraît noir et devient illisible.
 
 sections:
   - id: intro
@@ -274,38 +288,56 @@ slides:
   - id: s11
     type: contenu
     titre: "Où ça vit — et donc qui y a accès"
+    sous_titre: "Le bon emplacement dépend d'une seule question : qui doit s'en servir ?"
     intention: >
       L'emplacement EST la stratégie de partage : inutile de traiter les deux
-      séparément comme le faisait la version précédente.
+      séparément comme le faisait la version précédente. Mais il n'y a pas UNE
+      bonne réponse : chaque portée a son cas d'usage, et c'est ce que dit la
+      phrase « quand la choisir » de chaque bloc. Sans cette phrase, l'audience
+      repart avec une recommandation unique qui ne correspond pas à sa situation.
     portees:
-      - portee: "Dans le projet"
+      - portee: "Propre à un projet"
         chemins: [".github/agents/", ".github/skills/"]
+        quand: >
+          La place par défaut. Si l'outil parle de CE code — ses conventions,
+          son domaine, sa stack — il vit avec lui.
         avantages:
           - "Versionné avec le code"
-          - "Disponible dès le clone du repo"
-          - "Évolue en pull request, donc relu"
-      - portee: "Sur ma machine"
+          - "Disponible dès le clone"
+          - "Relu en pull request"
+      - portee: "Utile à toute l'équipe"
+        chemins: ["Un plugin, publié sur un marketplace"]
+        quand: >
+          Dès qu'un outil sert dans DEUX projets, le copier-coller devient une
+          dette : on l'empaquette une fois, chacun l'installe.
+        avantages:
+          - "Une seule version pour tous"
+          - "Mise à jour d'une commande"
+          - "Découvrable sans demander"
+      - portee: "Personnel"
         chemins: ["~/.copilot/agents/", "~/.copilot/skills/"]
+        quand: "Mes outils à moi, dans tous mes projets — sans rien imposer à l'équipe."
         avantages:
-          - "Présent dans tous mes projets"
           - "Aucune configuration par repo"
-          - "Idéal pour mes outils perso"
-      - portee: "Repo d'équipe"
-        chemins: ["mon-org/copilot-toolbox"]
-        avantages:
-          - "Un seul endroit pour toute l'équipe"
-          - "Pas de duplication entre projets"
-          - "Versionnable par releases"
+          - "Surcharge la version du projet"
+    definitions_anticipees: >
+      Plugin : un paquet installable qui regroupe agents, skills et hooks.
+      Marketplace : le catalogue où l'équipe publie ses plugins et pioche ceux des
+      autres. Les deux sont posés ici en une phrase parce qu'on en a besoin pour
+      comprendre l'arbitrage ; ils sont détaillés en section 04.
+    standard_ouvert: >
+      Un skill rangé dans .claude/skills/ est lu par Copilot ET par Claude Code —
+      écrit une fois, utile aux deux.
     emplacements_egalement_reconnus:
       - chemin: ".claude/skills/<nom>/"
         scope: "Projet · lu par Claude Code ET Copilot"
       - chemin: ".agents/skills/<nom>/"
-        scope: "Projet · format neutre"
+        scope: "Projet · format neutre (non affiché sur la slide)"
       - chemin: "~/.agents/skills/<nom>/"
         scope: "Personnel · format neutre (non affiché sur la slide)"
     priorite: >
-      En cas de doublon, la version personnelle prend le dessus sur celle du projet —
-      on peut donc surcharger un outil d'équipe sans toucher au repo.
+      En cas de doublon, la version personnelle prend le dessus sur celle du projet.
+      Porté sur la slide par l'avantage « Surcharge la version du projet ».
       Ordre complet côté agents : utilisateur > dépôt > organisation > entreprise.
     note_vscode: >
       VS Code reconnaît par défaut .github/skills/, .claude/skills/, .agents/skills/
@@ -369,7 +401,7 @@ slides:
   - id: s15
     type: contenu
     titre: "Les plugins"
-    sous_titre: "Le format officiel pour distribuer tout ce qu'on vient de voir"
+    sous_titre: "La réponse au cas « utile à toute l'équipe » de tout à l'heure"
     definition: >
       Un plugin est un paquet installable. Il regroupe skills, agents, hooks et
       connexions à des outils externes en une seule unité — on l'installe d'une
@@ -399,22 +431,31 @@ slides:
   - id: s16
     type: grille
     titre: "Distribution & marketplace"
+    sous_titre: "Trois niveaux — on commence par le premier, on passe au suivant quand le besoin apparaît"
+    intention: >
+      Éviter de laisser croire que le marketplace est obligatoire dès le premier
+      plugin : chaque mode indique la situation qui le rend pertinent.
     modes:
-      - rang: "Le plus simple"
+      - rang: "Pour démarrer"
         titre: "Dépôt Git ou dossier local"
-        description: "On installe depuis un dépôt GitHub, public ou privé — ou depuis un simple chemin local."
+        description: >
+          On installe depuis un dépôt GitHub, public ou privé. Suffisant tant qu'on
+          est quelques-uns à savoir que le plugin existe.
         commande: "copilot plugin install org/toolbox"
-      - rang: "À l'échelle de l'équipe"
+      - rang: "Recommandé en équipe"
         titre: "Marketplace"
         description: >
           Un catalogue déclaré une fois, que chacun parcourt et installe à la demande.
-          Deux sont fournis d'office : copilot-plugins et awesome-copilot.
+          À privilégier dès que plusieurs plugins circulent, ou que de nouveaux
+          arrivants doivent les trouver seuls.
+          Deux marketplaces sont fournis d'office : copilot-plugins et awesome-copilot.
         commande: "copilot plugin marketplace add org/repo"
       - rang: "Gouvernance"
         titre: "Déploiement centralisé"
         description: >
-          Les administrateurs peuvent imposer un jeu de plugins à toute l'organisation —
-          tout le monde travaille alors avec les mêmes règles, sans rien installer.
+          Les administrateurs imposent un jeu de plugins à toute l'organisation.
+          Utile quand un outil n'est pas optionnel — une règle de sécurité,
+          un format de PR obligatoire.
     autres_commandes_utiles:
       - "copilot plugin list | update NAME | enable NAME | disable NAME | uninstall NAME"
       - "copilot plugin marketplace list | browse NAME | update | remove NAME"
