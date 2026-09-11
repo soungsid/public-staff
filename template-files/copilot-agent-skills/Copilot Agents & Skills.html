@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GitHub Copilot — Agents &amp; Skills</title>
+<title>GitHub Copilot — Personnaliser son assistant</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -79,7 +79,7 @@ code   { font-family: 'IBM Plex Mono', monospace; font-size: .88em;
 <script src="copilot-data.js"></script>
 <script>
 let currentSlide = 0, currentStep = 0;
-const SK = 'copilot-pres-v3';
+const SK = 'copilot-pres-v4';
 
 /* ── Helpers ──────────────────────────────────────────── */
 function e(s) {
@@ -223,9 +223,9 @@ function step(s) {
       </div>`;
 
     case 'token-row':
-      return `<div class="grid border-t" style="grid-template-columns:220px 300px 1fr 160px;border-color:var(--border);background:white">
+      return `<div class="grid border-t" style="grid-template-columns:220px 370px 1fr 170px;border-color:var(--border);background:white">
         <div class="px-[22px] py-[18px] text-[25px] font-bold leading-[1.35] border-r" style="color:var(--text);border-color:var(--border)">${s.label}</div>
-        <div class="px-[22px] py-[18px] text-[19px] font-mono leading-[1.35] border-r" style="color:var(--muted);border-color:var(--border)">${s.context}</div>
+        <div class="px-[22px] py-[18px] text-[19px] font-mono leading-[1.35] border-r self-center" style="color:var(--muted);border-color:var(--border)">${s.context}</div>
         <div class="px-[22px] py-[18px] text-[24px] leading-[1.35] border-r" style="color:var(--text);border-color:var(--border)">${s.behavior}</div>
         <div class="px-[22px] py-[18px] text-[22px] font-bold flex items-center justify-center text-center ${impactCls(s.impactLevel)}">${s.impact}</div>
       </div>`;
@@ -248,16 +248,29 @@ function step(s) {
       </div>`;
 
     case 'distribution':
-      return `<div class="bg-white rounded-xl border px-9 py-8" style="border-color:var(--border)">
+      return `<div class="bg-white rounded-xl border px-9 py-8 h-full flex flex-col" style="border-color:var(--border)">
         <div class="text-[16px] font-bold tracking-[0.1em] uppercase mb-2.5" style="color:var(--accent)">${s.rank}</div>
         <div class="text-[34px] font-bold mb-3" style="color:var(--text)">${s.title}</div>
-        <div class="text-[27px] leading-[1.45]" style="color:var(--muted)">${s.desc}</div>
+        <div class="text-[27px] leading-[1.45] flex-1" style="color:var(--muted)">${s.desc}</div>
+        ${s.cmd?`<div class="mt-5 rounded-lg px-4 py-3 font-mono text-[19px] whitespace-nowrap overflow-x-auto"
+                      style="background:var(--code-bg);color:var(--code-fg)">${e(s.cmd)}</div>`:''}
       </div>`;
 
     case 'code':
       return `<div class="rounded-xl overflow-hidden" style="background:var(--code-bg)">
         ${s.label?`<div class="px-5 py-2.5 text-[18px] font-mono text-white/45 tracking-[0.05em]" style="background:oklch(22% 0.05 240);border-bottom:1px solid rgba(255,255,255,.06)">${s.label}</div>`:''}
         <pre class="px-7 py-[22px] text-[23px] font-mono leading-[1.65] whitespace-pre overflow-auto max-h-[460px]" style="color:var(--code-fg)">${highlight(s.content)}</pre>
+      </div>`;
+
+    case 'flow':
+      return `<div class="flex items-stretch gap-3">
+        ${s.items.map((it,i)=>`
+          ${i?`<div class="flex items-center text-[30px] font-bold self-center" style="color:var(--border)">→</div>`:''}
+          <div class="flex-1 rounded-xl border px-5 py-4 text-center flex flex-col justify-center gap-1"
+               style="border-color:${it.accent?'var(--accent)':'var(--border)'};background:${it.accent?'var(--accent-bg)':'white'}">
+            <div class="text-[24px] font-semibold leading-[1.2]" style="color:${it.accent?'var(--accent)':'var(--text)'}">${it.label}</div>
+            ${it.note?`<div class="text-[19px] leading-[1.2]" style="color:var(--muted)">${it.note}</div>`:''}
+          </div>`).join('')}
       </div>`;
 
     case 'bullet':
@@ -344,22 +357,24 @@ function buildSlide(data, idx) {
       break;
     }
 
-    case 'token':
+    case 'token': {
+      const cols = data.columns || ['Source','Fichier / Mécanisme','Comportement','Impact tokens'];
       el.style.background = 'var(--bg)';
       el.innerHTML = `${eyebrow(data,idx)}${hdr(data)}
         <div class="flex-1 overflow-hidden px-[80px] pt-5 pb-[60px]" style="background:var(--bg)">
           <div class="rounded-xl overflow-hidden border" style="border-color:var(--border)">
             <div class="grid text-[16px] font-semibold tracking-[0.07em] uppercase text-white/55"
-                 style="grid-template-columns:220px 300px 1fr 160px;background:var(--dark)">
-              <div class="px-[22px] py-3 border-r border-white/10">Source</div>
-              <div class="px-[22px] py-3 border-r border-white/10">Fichier / Mécanisme</div>
-              <div class="px-[22px] py-3 border-r border-white/10">Comportement</div>
-              <div class="px-[22px] py-3">Impact tokens</div>
+                 style="grid-template-columns:220px 370px 1fr 170px;background:var(--dark)">
+              <div class="px-[22px] py-3 border-r border-white/10">${cols[0]}</div>
+              <div class="px-[22px] py-3 border-r border-white/10">${cols[1]}</div>
+              <div class="px-[22px] py-3 border-r border-white/10">${cols[2]}</div>
+              <div class="px-[22px] py-3">${cols[3]}</div>
             </div>
             ${steps()}
           </div>
         </div>`;
       break;
+    }
 
     case 'table':
       el.style.background = 'var(--bg)';

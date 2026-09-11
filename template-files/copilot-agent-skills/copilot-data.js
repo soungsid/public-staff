@@ -4,21 +4,20 @@
 const PRESENTATION_DATA = {
 
   meta: {
-    title: "GitHub Copilot — Agents & Skills",
-    subtitle: "Personnaliser et partager son assistant IA",
-    date: "Juin 2026",
-    audience: "Équipe de développeurs"
+    title: "GitHub Copilot — Personnaliser son assistant",
+    subtitle: "Skills, agents, hooks et plugins",
+    date: "Septembre 2026",
+    audience: "Équipe de développeurs — première approche"
   },
 
   // Sections affichées dans la barre de progression bas de page
   sections: [
-    { id: "intro",      label: "Intro",             slides: [0, 1] },
-    { id: "agents",     label: "01 · Agents",       slides: [2, 3, 4, 5, 6] },
-    { id: "skills",     label: "02 · Skills",       slides: [7, 8, 9, 10, 11] },
-    { id: "compare",    label: "03 · Comparaison",  slides: [12, 13, 14, 15] },
-    { id: "sharing",    label: "04 · Partage",      slides: [16, 17, 18, 19] },
-    { id: "plugins",    label: "05 · Plugins",      slides: [20, 21, 22] },
-    { id: "discussion", label: "Discussion",        slides: [23] }
+    { id: "intro",      label: "Intro",              slides: [0, 1, 2] },
+    { id: "skills",     label: "01 · Skills",        slides: [3, 4, 5] },
+    { id: "agents",     label: "02 · Agents",        slides: [6, 7, 8, 9] },
+    { id: "sharing",    label: "03 · Partage",       slides: [10, 11, 12] },
+    { id: "extend",     label: "04 · Aller + loin",  slides: [13, 14, 15, 16] },
+    { id: "discussion", label: "Discussion",         slides: [17] }
   ],
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -38,6 +37,7 @@ const PRESENTATION_DATA = {
   //   two-col          { left:{label,tagline,items[]}, right:{label,tagline,items[]} }
   //   comparison-col   { label, tagline, items[] }
   //   token-row        { label, context, behavior, impactLevel, impact }
+  //   flow             { items[{label, note?, accent?}] }
   //   best-practice    { icon, text }
   //   strategy         { rank, title, desc, pros[], cons[] }
   //   distribution     { rank, title, desc }
@@ -52,9 +52,9 @@ const PRESENTATION_DATA = {
     {
       id: "s00", type: "title", sectionId: "intro",
       title: "GitHub Copilot",
-      accent: "Agents & Skills",
-      tagline: "Personnaliser et partager son assistant IA",
-      meta: "Juin 2026 · Équipe développeurs",
+      accent: "Le personnaliser",
+      tagline: "Skills, agents, hooks et plugins — comment lui apprendre notre façon de travailler",
+      meta: "Septembre 2026 · Équipe développeurs",
       steps: []
     },
 
@@ -63,388 +63,316 @@ const PRESENTATION_DATA = {
       id: "s01", type: "agenda", sectionId: "intro",
       title: "Au programme",
       steps: [
-        { type: "agenda-item", num: "01", text: "Anatomie d'un custom agent" },
-        { type: "agenda-item", num: "02", text: "Anatomie d'un custom skill" },
-        { type: "agenda-item", num: "03", text: "Skill vs Agent — Quelle différence ?" },
-        { type: "agenda-item", num: "04", text: "Partager agents & skills en équipe" },
-        { type: "agenda-item", num: "05", text: "Agent Plugins — Packager et distribuer" }
+        { type: "agenda-item", num: "01", text: "Les <strong>skills</strong> — apprendre une tâche à Copilot" },
+        { type: "agenda-item", num: "02", text: "Les <strong>agents</strong> — lui déléguer un rôle" },
+        { type: "agenda-item", num: "03", text: "Partager tout ça avec l'équipe" },
+        { type: "agenda-item", num: "04", text: "Aller plus loin : <strong>hooks</strong>, <strong>plugins</strong>, <strong>marketplace</strong>" }
       ]
     },
 
-    // ── 02 · Section 01 ────────────────────────────────────────────────
+    // ── 02 · Vue d'ensemble ────────────────────────────────────────────
     {
-      id: "s02", type: "section", sectionId: "agents",
-      num: "01", title: "Anatomie d'un custom agent",
-      items: ["Définition & invocation", "Structure du fichier .agent.md", "Où le placer ?"],
+      id: "s02", type: "token", sectionId: "intro",
+      title: "Le vocabulaire, en une slide",
+      context: "Quatre façons de donner du contexte à Copilot — plus une pour les empaqueter",
+      columns: ["Brique", "Où ça vit", "À quoi ça sert", "Coût en tokens"],
+      steps: [
+        { type: "token-row", label: "Instructions", context: "copilot-instructions.md",
+          behavior: "Le contexte permanent du projet : stack, conventions, règles. Injecté à <strong>chaque</strong> message.",
+          impactLevel: "high", impact: "Élevé" },
+        { type: "token-row", label: "Skill", context: ".github/skills/&lt;nom&gt;/",
+          behavior: "Le mode d'emploi d'<strong>une tâche</strong> précise et répétable. Chargé seulement quand il sert.",
+          impactLevel: "low", impact: "Faible" },
+        { type: "token-row", label: "Agent", context: ".github/agents/*.agent.md",
+          behavior: "Un <strong>rôle délégué</strong> : Copilot raisonne, choisit ses outils et enchaîne les actions.",
+          impactLevel: "medium", impact: "Moyen" },
+        { type: "token-row", label: "Hook", context: ".github/hooks/*.json",
+          behavior: "Du code déclenché <strong>automatiquement</strong> à un moment clé. Ne passe pas par le modèle.",
+          impactLevel: "zero", impact: "Zéro" },
+        { type: "token-row", label: "Plugin", context: "plugin.json",
+          behavior: "Le <strong>paquet</strong> qui regroupe skills, agents et hooks pour les installer d'un coup.",
+          impactLevel: "zero", impact: "Conteneur" }
+      ]
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // ── 03 · Section 01 ────────────────────────────────────────────────
+    {
+      id: "s03", type: "section", sectionId: "skills",
+      num: "01", title: "Les skills",
+      items: ["Apprendre une tâche à Copilot", "Anatomie d'un skill", "Le chargement à la demande"],
       steps: []
     },
 
-    // ── 03 · Qu'est-ce qu'un agent ? ───────────────────────────────────
+    // ── 04 · Qu'est-ce qu'un skill ? ───────────────────────────────────
     {
-      id: "s03", type: "content", sectionId: "agents",
-      title: "Qu'est-ce qu'un agent ?",
-      steps: [
-        {
-          type: "definition",
-          text: "Un agent est une <em>persona spécialisée</em> confiée à Copilot. Il pense, planifie et exécute des tâches <strong>multi-étapes de façon autonome</strong>. On lui attribue un rôle précis, des outils autorisés et des permissions explicites."
-        },
-        {
-          type: "chips",
-          label: "Exemples de rôles",
-          items: ["Security Reviewer", "Planner", "Documentateur", "Migration Assistant"]
-        },
-        {
-          type: "rule",
-          text: "Invocation : <code>@nom-agent</code> explicitement — ou <strong>automatique</strong> quand Copilot détecte la pertinence via la <code>description</code>."
-        }
-      ]
-    },
-
-    // ── 04 · Structure YAML Frontmatter ────────────────────────────────
-    {
-      id: "s04", type: "content", sectionId: "agents",
-      title: "Fichier .agent.md — Métadonnées YAML",
-      context: "Deux parties : YAML frontmatter (métadonnées) + corps Markdown (instructions)",
-      steps: [
-        { type: "field", name: "name",         badge: "REQUIS",      desc: "Identifiant unique de l'agent",                   sub: "Caractères autorisés : a-z, A-Z, 0-9, ., -, _" },
-        { type: "field", name: "description",  badge: "REQUIS",      desc: "Ce que l'agent fait",                             sub: "Utilisé par Copilot pour décider quand l'invoquer automatiquement" },
-        { type: "field", name: "tools",        badge: "Recommandé",  desc: "Liste des outils autorisés",                      sub: "#tool:web/fetch · #tool:github — restreindre réduit tokens et surface d'attaque" },
-        { type: "field", name: "permissions",  badge: "Recommandé",  desc: "Droits d'accès : lecture, écriture, exécution",   sub: "Principe de moindre privilège — content: read | write | execute" },
-        { type: "field", name: "safe-outputs", badge: "Optionnel",   desc: "Sorties considérées comme sûres",                 sub: "Important pour les agents autonomes qui exécutent du code" },
-        { type: "field", name: "on",           badge: "Optionnel",   desc: "Déclencheur de workflow agentique",               sub: "Événements GitHub : issue ouverte, PR créée, push, etc." }
-      ]
-    },
-
-    // ── 05 · Corps Markdown + Exemple minimal ──────────────────────────
-    {
-      id: "s05", type: "content", sectionId: "agents",
-      title: "Corps Markdown + Exemple minimal",
-      steps: [
-        {
-          type: "definition",
-          text: "Le corps Markdown contient la <strong>persona</strong>, le comportement attendu, les contraintes métier et des exemples d'interactions. C'est la partie la plus libre — écrivez en langage naturel."
-        },
-        {
-          type: "code", lang: "yaml", label: "security-reviewer.agent.md",
-          content: "---\nname: security-reviewer\ndescription: Analyse le code pour détecter les vulnérabilités. Ne modifie jamais les fichiers.\ntools:\n  - \"#tool:github\"\npermissions:\n  content: read\n---\n\nTu es un expert en sécurité applicative (OWASP Top 10, injection, XSS, secrets exposés).\nTu fournis un rapport structuré avec sévérité, localisation et recommandation.\nTu ne proposes jamais de correctif directement — tu documentes uniquement."
-        }
-      ]
-    },
-
-    // ── 06 · Où placer un agent ? ──────────────────────────────────────
-    {
-      id: "s06", type: "content", sectionId: "agents",
-      title: "Où placer un agent ?",
-      steps: [
-        {
-          type: "location", scope: "Projet / Équipe",
-          path: ".github/agents/<nom>.agent.md",
-          pros: ["Versionné avec le code", "Visible dans l'historique Git", "Disponible dès le clone du repo"]
-        },
-        {
-          type: "location", scope: "Personnel",
-          path: "~/.copilot/agents/<nom>.agent.md",
-          pros: ["Disponible dans tous les workspaces", "Idéal pour les assistants perso"]
-        },
-        {
-          type: "rule",
-          text: "Priorité : <code>~/.copilot/agents/</code> prend la priorité sur <code>.github/agents/</code> → permet de surcharger un agent d'équipe avec sa version personnelle."
-        },
-        {
-          type: "bullet",
-          text: "CLI : <code>gh copilot @nom-agent</code> — invoque l'agent depuis le terminal"
-        }
-      ]
-    },
-
-    // ── 07 · Section 02 ────────────────────────────────────────────────
-    {
-      id: "s07", type: "section", sectionId: "skills",
-      num: "02", title: "Anatomie d'un custom skill",
-      items: ["Définition & différence vs agent", "Structure du dossier", "SKILL.md & exemple", "Où le placer ?"],
-      steps: []
-    },
-
-    // ── 08 · Qu'est-ce qu'un skill ? ───────────────────────────────────
-    {
-      id: "s08", type: "content", sectionId: "skills",
+      id: "s04", type: "content", sectionId: "skills",
       title: "Qu'est-ce qu'un skill ?",
       steps: [
         {
           type: "definition",
-          text: "Un skill est un <em>module d'instruction</em> qui apprend à Copilot à réaliser <strong>UNE action précise et répétable</strong>. Contrairement à un agent, il ne pense pas — il exécute exactement ce pour quoi il a été conçu."
+          text: "Un skill est un <em>mode d'emploi</em> écrit une fois pour toutes. Il décrit <strong>une tâche précise et répétable</strong> — telle que notre équipe la fait. Copilot l'applique ensuite à l'identique, sans qu'on ait à réexpliquer."
         },
         {
-          type: "two-col",
-          left:  { label: "Skill",  tagline: "Atomique · Stateless · Prévisible",  items: ["Exécute une seule action et s'arrête", "Résultat reproductible à chaque appel", "Chargement lazy — tokens proportionnels à l'usage"] },
-          right: { label: "Agent",  tagline: "Autonome · Stateful · Orchestre",    items: ["Raisonne, sélectionne ses outils, enchaîne les actions", "Maintient son contexte sur toute une session", "Persona complète chargée à l'invocation"] }
+          type: "chips",
+          label: "Exemples",
+          items: ["Générer un ADR", "Rédiger un changelog", "Écrire un test selon nos conventions", "Ouvrir une PR au bon format"]
         },
         {
           type: "rule",
-          text: "Copilot lit d'abord <strong>uniquement</strong> <code>name + description</code>. Les instructions complètes ne sont chargées <strong>que si le skill est jugé pertinent</strong>."
+          text: "Copilot ne lit d'abord que le <code>name</code> et la <code>description</code>. Le reste n'est chargé <strong>que si le skill est pertinent</strong> — d'où un catalogue de cinquante skills qui ne coûte presque rien."
+        },
+        {
+          type: "bullet",
+          text: "Déclenchement : automatique quand la description correspond à la demande, ou en le nommant explicitement."
         }
       ]
     },
 
-    // ── 09 · Structure du dossier ──────────────────────────────────────
+    // ── 05 · Anatomie d'un skill ───────────────────────────────────────
     {
-      id: "s09", type: "content", sectionId: "skills",
-      title: "Structure du dossier skill",
-      context: "Racine : .github/skills/<nom-du-skill>/",
-      steps: [
-        { type: "file", name: "SKILL.md",    badge: "REQUIS",     desc: "Frontmatter YAML + instructions complètes — injecté dans le contexte quand le skill est activé" },
-        { type: "file", name: "scripts/",     badge: "Optionnel",  desc: "Scripts Python ou PowerShell — automatisation concrète exécutée par le skill" },
-        { type: "file", name: "references/",  badge: "Optionnel",  desc: "Documentation chargée dans le contexte (specs, conventions, glossaire métier)" },
-        { type: "file", name: "templates/",   badge: "Optionnel",  desc: "Fichiers starter modifiés par l'agent (ex : template de PR, de test unitaire)" },
-        { type: "file", name: "assets/",      badge: "Optionnel",  desc: "Fichiers statiques utilisés tels quels dans la sortie (logo, config fixe…)" },
-        { type: "file", name: "LICENSE.txt",  badge: "Recommandé", desc: "Licence du skill — Apache 2.0 souvent utilisé pour les skills open source" }
-      ]
-    },
-
-    // ── 10 · SKILL.md + Exemple ────────────────────────────────────────
-    {
-      id: "s10", type: "content", sectionId: "skills",
-      title: "SKILL.md — Exemple : generate-adr",
+      id: "s05", type: "content", sectionId: "skills",
+      title: "Anatomie d'un skill",
+      context: "Un dossier, un seul fichier obligatoire : les métadonnées en tête, les instructions en dessous",
       steps: [
         {
-          type: "field-group", label: "Champs YAML frontmatter",
+          type: "code", lang: "yaml", label: ".github/skills/generate-adr/SKILL.md",
+          content: "---\nname: generate-adr\ndescription: Génère un Architecture Decision Record à partir d'une décision technique\n---\n\n## Instructions\n\nQuand l'utilisateur décrit une décision d'architecture, produis un ADR suivant\nle modèle de templates/adr-template.md — sections Contexte, Décision, Conséquences.\nNomme le fichier docs/adr/AAAA-MM-JJ-<sujet-en-kebab-case>.md"
+        },
+        {
+          type: "field-group", label: "Sous-dossiers optionnels, à côté du SKILL.md — lus seulement si la tâche l'exige",
           fields: [
-            { name: "name",        desc: "Identifiant unique, minuscules, tirets (ex : generate-adr)" },
-            { name: "description", desc: "Décrit la tâche — clé pour la détection automatique par Copilot" },
-            { name: "version",     desc: "Suivi de version sémantique (ex : 1.0.0)" }
+            { name: "templates/",  desc: "Modèles de fichiers que Copilot remplit (template d'ADR, de test…)" },
+            { name: "references/", desc: "Documentation à consulter : conventions, glossaire métier, specs" },
+            { name: "scripts/",    desc: "Scripts exécutables quand la tâche demande de l'automatisation réelle" }
           ]
-        },
-        {
-          type: "code", lang: "yaml", label: "generate-adr/SKILL.md",
-          content: "---\nname: generate-adr\ndescription: Génère un Architecture Decision Record (ADR) structuré à partir d'une décision technique\nversion: 1.0.0\n---\n\n## Instructions\n\nQuand l'utilisateur décrit une décision d'architecture, génère un fichier ADR\nsuivant le template dans templates/adr-template.md.\n\nChamps obligatoires : Titre, Statut, Contexte, Décision, Conséquences.\nNomme le fichier : docs/adr/YYYY-MM-DD-<sujet-en-kebab-case>.md"
         }
       ]
     },
 
-    // ── 11 · Où placer un skill ? ──────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════
+    // ── 06 · Section 02 ────────────────────────────────────────────────
     {
-      id: "s11", type: "content", sectionId: "skills",
-      title: "Où placer un skill ?",
-      steps: [
-        {
-          type: "location", scope: "Projet (Git)",
-          path: ".github/skills/<nom>/",
-          pros: ["Versionné, partagé avec l'équipe", "Détecté automatiquement par Copilot"]
-        },
-        {
-          type: "location", scope: "Personnel",
-          path: "~/.copilot/skills/<nom>/",
-          pros: ["Disponible dans tous les workspaces de la machine"]
-        },
-        {
-          type: "location-group",
-          label: "Standard ouvert — reconnu aussi par Claude Code",
-          items: [
-            { path: ".claude/skills/<nom>/", scope: "Projet · Claude Code + Copilot" },
-            { path: ".agents/skills/<nom>/", scope: "Projet · autre emplacement reconnu" }
-          ]
-        },
-        {
-          type: "rule",
-          text: "VS Code : paramètre <code>chat.agentSkillsLocations</code> — tableau de chemins pour pointer vers un repo outils partagé."
-        }
-      ]
-    },
-
-    // ── 12 · Section 03 ────────────────────────────────────────────────
-    {
-      id: "s12", type: "section", sectionId: "compare",
-      num: "03", title: "Skill vs Agent — Quelle différence ?",
-      items: ["Raison d'être", "Économie de tokens", "Lifecycle et contrôle", "Tableau comparatif complet"],
+      id: "s06", type: "section", sectionId: "agents",
+      num: "02", title: "Les agents",
+      items: ["Déléguer un rôle, pas une tâche", "Anatomie d'un agent", "Skill ou agent : comment choisir"],
       steps: []
     },
 
-    // ── 13 · Raison d'être ─────────────────────────────────────────────
+    // ── 07 · Qu'est-ce qu'un agent ? ───────────────────────────────────
     {
-      id: "s13", type: "twocol", sectionId: "compare",
-      title: "Raison d'être — Skill vs Agent",
-      steps: [
-        {
-          type: "comparison-col", label: "Skill",
-          tagline: "Enseigne UNE action précise",
-          items: [
-            "Déclaratif, prévisible, stateless",
-            "Exemples : générer un ADR, rédiger un changelog, créer un test unitaire selon un template"
-          ]
-        },
-        {
-          type: "comparison-col", label: "Agent",
-          tagline: "Persona autonome avec un objectif",
-          items: [
-            "Raisonne, sélectionne ses outils, enchaîne les actions",
-            "Exemples : analyser toute la sécurité d'un PR, planifier une migration et produire un plan d'implémentation"
-          ]
-        }
-      ]
-    },
-
-    // ── 14 · Économie de tokens ────────────────────────────────────────
-    {
-      id: "s14", type: "token", sectionId: "compare",
-      title: "Économie de tokens",
-      steps: [
-        { type: "token-row", label: "Instructions globales", context: "copilot-instructions.md",           behavior: "Toujours injectées — à chaque message, même pour des questions simples",                     impactLevel: "high",   impact: "Élevé"  },
-        { type: "token-row", label: "Skills",                context: "name + description seuls au départ", behavior: "Instructions complètes chargées uniquement si le skill est jugé pertinent",                  impactLevel: "low",    impact: "Faible" },
-        { type: "token-row", label: "Agents",                context: "Persona complète à l'invocation",   behavior: "Réduit en restreignant outils et permissions — proportionnel à la taille du .agent.md",       impactLevel: "medium", impact: "Moyen"  },
-        { type: "token-row", label: "Hooks natifs",          context: "Exécution directe, sans LLM",        behavior: "Code exécuté directement — aucun passage par le modèle de langage",                          impactLevel: "zero",   impact: "Zéro"   }
-      ]
-    },
-
-    // ── 15 · Tableau comparatif ────────────────────────────────────────
-    {
-      id: "s15", type: "table", sectionId: "compare",
-      title: "Tableau comparatif complet",
-      columns: ["Dimension", "Skill", "Agent"],
-      steps: [
-        { type: "table-row", cells: ["Granularité",       "Une action atomique",                    "Workflow multi-étapes"] },
-        { type: "table-row", cells: ["Autonomie",         "Nulle — exécute et s'arrête",            "Haute — raisonne et décide"] },
-        { type: "table-row", cells: ["Tokens consommés",  "Faibles (chargement lazy)",              "Moyens à élevés (persona complète)"] },
-        { type: "table-row", cells: ["Prévisibilité",     "Très haute — résultat reproductible",    "Variable selon le raisonnement"] },
-        { type: "table-row", cells: ["Format fichier",    "Dossier + SKILL.md",                     "Fichier .agent.md unique"] },
-        { type: "table-row", cells: ["Déclenchement",     "Automatique ou mention",                 "Explicite ou événement GitHub"] },
-        { type: "table-row", cells: ["État entre appels", "Stateless",                              "Avec mémoire de session"] },
-        { type: "table-row", cells: ["Cas d'usage",       "Générer un rapport, créer un fichier",   "Analyser, planifier, orchestrer"] }
-      ]
-    },
-
-    // ── 16 · Section 04 ────────────────────────────────────────────────
-    {
-      id: "s16", type: "section", sectionId: "sharing",
-      num: "04", title: "Partager dans l'équipe",
-      items: ["Stratégies de distribution", "Niveaux de portée", "Bonnes pratiques"],
-      steps: []
-    },
-
-    // ── 17 · Stratégies 1/2 ────────────────────────────────────────────
-    {
-      id: "s17", type: "grid", sectionId: "sharing",
-      title: "Stratégies de partage",
-      badge: "1 / 2",
-      steps: [
-        {
-          type: "strategy", rank: "★ Recommandé",
-          title: "Via le repository du projet",
-          desc: "Agents dans .github/agents/ et skills dans .github/skills/ — versionnés avec le code, disponibles dès le clone.",
-          pros: ["Pas de config supplémentaire", "Évolution dans les PR → revue possible", "Cohérence garantie : même version pour tous"],
-          cons: ["Scope limité à ce repo"]
-        },
-        {
-          type: "strategy", rank: "Scalable",
-          title: "Via un repository dédié",
-          desc: "Repo central (ex : mon-org/copilot-toolbox) — un seul endroit pour tous les outils d'équipe.",
-          pros: ["Évite la duplication", "Découvrabilité centralisée", "Versionnable avec des releases"],
-          cons: ["Nécessite chat.agentSkillsLocations dans VS Code"]
-        }
-      ]
-    },
-
-    // ── 18 · Stratégies 2/2 ────────────────────────────────────────────
-    {
-      id: "s18", type: "grid", sectionId: "sharing",
-      title: "Stratégies de partage",
-      badge: "2 / 2",
-      steps: [
-        {
-          type: "strategy", rank: "Personnel",
-          title: "Via les dotfiles",
-          desc: "~/.copilot/ dans ses dotfiles (chezmoi, stow…) — disponible dans tous les projets sans config.",
-          pros: ["Personnalisation individuelle", "Tous projets sans config par repo"],
-          cons: ["Non partagé automatiquement"]
-        },
-        {
-          type: "strategy", rank: "Bientôt",
-          title: "Niveau Organisation / Enterprise",
-          desc: "Support centralisé au niveau org/enterprise annoncé par GitHub — sans configuration par repo.",
-          pros: ["Déploiement à grande échelle par les admins"],
-          cons: ["Pas encore en GA — à suivre dans GitHub Changelog"]
-        },
-        {
-          type: "strategy", rank: "Cross-tools",
-          title: "Standard ouvert",
-          desc: "Skills dans .claude/skills/ — reconnus par Copilot ET Claude Code.",
-          pros: ["Investissement rentabilisé pour les équipes multi-assistants IA"],
-          cons: []
-        }
-      ]
-    },
-
-    // ── 19 · Bonnes pratiques ──────────────────────────────────────────
-    {
-      id: "s19", type: "content", sectionId: "sharing",
-      title: "Bonnes pratiques",
-      steps: [
-        { type: "best-practice", icon: "✦", text: "Nommer en <strong>kebab-case, verbe-objet</strong> : <code>generate-adr</code>, <code>review-security</code>" },
-        { type: "best-practice", icon: "✦", text: "<strong>Versionner</strong> les skills — champ <code>version</code> dans le frontmatter YAML" },
-        { type: "best-practice", icon: "✦", text: "<strong>Restreindre</strong> outils et permissions des agents au strict nécessaire (principe de moindre privilège)" },
-        { type: "best-practice", icon: "✦", text: "Soigner la <strong>description</strong> — c'est la clé du déclenchement automatique par Copilot" },
-        { type: "best-practice", icon: "✦", text: "Tester dans <code>.github/skills/</code> avant de promouvoir dans un repo partagé" },
-        { type: "best-practice", icon: "✦", text: "Inclure des <strong>exemples concrets</strong> dans SKILL.md pour guider le comportement de Copilot" },
-        { type: "best-practice", icon: "✦", text: "Ajouter un <code>README.md</code> dans <code>.github/skills/</code> listant les skills et leur usage" }
-      ]
-    },
-
-    // ── 20 · Section 05 ────────────────────────────────────────────────
-    {
-      id: "s20", type: "section", sectionId: "plugins",
-      num: "05", title: "Agent Plugins",
-      items: ["Concept & Rôle", "Anatomie d'un plugin", "Distribution & Installation"],
-      steps: []
-    },
-
-    // ── 21 · Plugins — Concept & Anatomie ─────────────────────────────
-    {
-      id: "s21", type: "content", sectionId: "plugins",
-      title: "Agent Plugins — Concept & Anatomie",
+      id: "s07", type: "content", sectionId: "agents",
+      title: "Qu'est-ce qu'un agent ?",
       steps: [
         {
           type: "definition",
-          text: "Un <strong>Agent Plugin</strong> est le mécanisme de <em>packaging officiel</em> de Copilot. Il empaquète agents, skills, hooks et configurations MCP en une seule unité distribuable et installable."
-        },
-        { type: "file", name: ".github/plugin.json", badge: "REQUIS",    desc: "Manifeste déclarant métadonnées, nom et composants inclus dans le plugin" },
-        { type: "file", name: "agents/",              badge: "Optionnel", desc: "Les fichiers .agent.md — les personas personnalisés" },
-        { type: "file", name: "skills/",              badge: "Optionnel", desc: "Les sous-dossiers de skills avec leurs SKILL.md" },
-        { type: "file", name: "hooks/ + mcp/",        badge: "Optionnel", desc: "Scripts événementiels (cycle de vie) + configuration MCP pour serveurs externes" }
-      ]
-    },
-
-    // ── 22 · Distribution & Installation ──────────────────────────────
-    {
-      id: "s22", type: "grid", sectionId: "plugins",
-      title: "Distribution & Installation",
-      steps: [
-        {
-          type: "distribution", rank: "Local",
-          title: "Local / Git direct",
-          desc: "Installation depuis un dossier local ou un dépôt GitHub public ou privé."
+          text: "Un agent est un <em>collègue virtuel spécialisé</em>. On lui confie un rôle et on limite les outils auxquels il a droit — puis il <strong>raisonne, décide et enchaîne les actions</strong> jusqu'à l'objectif."
         },
         {
-          type: "distribution", rank: "Équipe",
-          title: "Marketplace d'entreprise",
-          desc: "Publication sur un catalogue interne — meilleure découvrabilité et gouvernance d'équipe."
+          type: "chips",
+          label: "Exemples de rôles",
+          items: ["Relecteur sécurité", "Planificateur", "Rédacteur de documentation", "Assistant de migration"]
         },
         {
-          type: "distribution", rank: "Admin",
-          title: "Installation centralisée",
-          desc: "Les administrateurs peuvent pré-installer ou imposer des plugins à toute l'organisation."
+          type: "rule",
+          text: "Invocation : <code>/agent</code> dans le CLI, <code>copilot --agent &lt;nom&gt;</code> en ligne de commande — ou <strong>automatiquement</strong>, quand Copilot juge sa <code>description</code> pertinente."
+        },
+        {
+          type: "bullet",
+          text: "La différence tient en une phrase : un skill sait <strong>comment</strong> faire, un agent cherche <strong>quoi</strong> faire."
         }
       ]
     },
 
-    // ── 23 · Discussion ────────────────────────────────────────────────
+    // ── 08 · Anatomie d'un agent ───────────────────────────────────────
     {
-      id: "s23", type: "discussion", sectionId: "discussion",
-      title: "Idées pour notre équipe",
-      prompt: "Quels agents ou skills pourrions-nous créer ?",
+      id: "s08", type: "content", sectionId: "agents",
+      title: "Anatomie d'un agent",
+      context: "Un seul fichier : <nom>.agent.md",
+      steps: [
+        {
+          type: "field-group", label: "Métadonnées YAML",
+          fields: [
+            { name: "description", desc: "REQUIS — ce qu'il fait : c'est ce qui décide si Copilot l'invoque seul" },
+            { name: "name",        desc: "Nom affiché ; à défaut, c'est le nom du fichier qui sert d'identifiant" },
+            { name: "tools",       desc: "Les outils auxquels il a droit — non renseigné, il les a tous" }
+          ]
+        },
+        {
+          type: "code", lang: "yaml", label: ".github/agents/security-reviewer.agent.md",
+          content: "---\nname: security-reviewer\ndescription: Analyse le code pour détecter les vulnérabilités. Ne modifie jamais de fichier.\ntools: view, grep, glob\n---\n\nTu es un expert en sécurité applicative : OWASP Top 10, injections, secrets exposés.\nTu produis un rapport — sévérité, localisation, recommandation — sans jamais corriger toi-même."
+        },
+        {
+          type: "rule",
+          text: "Aucun outil d'écriture n'est listé : l'agent est <strong>structurellement incapable</strong> de modifier un fichier."
+        }
+      ]
+    },
+
+    // ── 09 · Skill ou agent ? ──────────────────────────────────────────
+    {
+      id: "s09", type: "table", sectionId: "agents",
+      title: "Skill ou agent ?",
+      context: "La dernière ligne suffit à trancher dans 90 % des cas",
+      columns: ["", "Skill", "Agent"],
+      steps: [
+        { type: "table-row", cells: ["Ce que c'est",  "Le mode d'emploi d'une tâche",     "Un rôle avec un objectif"] },
+        { type: "table-row", cells: ["Autonomie",     "Aucune — il applique",             "Forte — il décide et enchaîne"] },
+        { type: "table-row", cells: ["Résultat",      "Reproductible à l'identique",      "Variable selon le raisonnement"] },
+        { type: "table-row", cells: ["Format",        "Un dossier + SKILL.md",            "Un fichier .agent.md"] },
+        { type: "table-row", cells: ["Coût",          "Faible — chargé à la demande",     "Moyen — rôle chargé en entier"] },
+        { type: "table-row", cells: ["À choisir si…", "La façon de faire est connue et fixe", "Le chemin est à trouver au cas par cas"] }
+      ]
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // ── 10 · Section 03 ────────────────────────────────────────────────
+    {
+      id: "s10", type: "section", sectionId: "sharing",
+      num: "03", title: "Partager avec l'équipe",
+      items: ["Où ranger ses skills et agents", "Qui y a accès", "Bonnes pratiques"],
+      steps: []
+    },
+
+    // ── 11 · Où ça vit ─────────────────────────────────────────────────
+    {
+      id: "s11", type: "content", sectionId: "sharing",
+      title: "Où ça vit — et donc qui y a accès",
+      steps: [
+        {
+          type: "location", scope: "Dans le projet",
+          path: ".github/agents/ · .github/skills/",
+          pros: ["Versionné avec le code", "Disponible dès le clone du repo", "Évolue en pull request, donc relu"]
+        },
+        {
+          type: "location", scope: "Sur ma machine",
+          path: "~/.copilot/agents/ · ~/.copilot/skills/",
+          pros: ["Présent dans tous mes projets", "Aucune configuration par repo", "Idéal pour mes outils perso"]
+        },
+        {
+          type: "location", scope: "Repo d'équipe",
+          path: "mon-org/copilot-toolbox",
+          pros: ["Un seul endroit pour toute l'équipe", "Pas de duplication entre projets", "Versionnable par releases"]
+        },
+        {
+          type: "location-group",
+          label: "Emplacements également reconnus — un skill écrit une fois sert aux deux assistants",
+          items: [
+            { path: ".claude/skills/<nom>/", scope: "Projet · Claude Code + Copilot" },
+            { path: ".agents/skills/<nom>/", scope: "Projet · format neutre" }
+          ]
+        },
+        {
+          type: "rule",
+          text: "En cas de doublon, la version <strong>personnelle</strong> prend le dessus sur celle du projet — on peut donc surcharger un outil d'équipe sans toucher au repo."
+        }
+      ]
+    },
+
+    // ── 12 · Bonnes pratiques ──────────────────────────────────────────
+    {
+      id: "s12", type: "content", sectionId: "sharing",
+      title: "Bonnes pratiques",
+      steps: [
+        { type: "best-practice", icon: "✦", text: "Soigner la <strong>description</strong> avant tout le reste — c'est elle qui décide du déclenchement automatique" },
+        { type: "best-practice", icon: "✦", text: "Nommer en <strong>verbe-objet, en kebab-case</strong> : <code>generate-adr</code>, <code>review-security</code>" },
+        { type: "best-practice", icon: "✦", text: "<strong>Restreindre les outils</strong> au strict nécessaire — un agent sans outil d'écriture ne peut rien casser" },
+        { type: "best-practice", icon: "✦", text: "Mettre des <strong>exemples concrets</strong> dans le fichier : c'est ce qui guide le mieux le comportement" },
+        { type: "best-practice", icon: "✦", text: "Tester chez soi, puis promouvoir dans le repo d'équipe une fois le comportement stable" },
+        { type: "best-practice", icon: "✦", text: "Commencer <strong>petit</strong> : un skill utile cette semaine vaut mieux qu'un agent parfait un jour" }
+      ]
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // ── 13 · Section 04 ────────────────────────────────────────────────
+    {
+      id: "s13", type: "section", sectionId: "extend",
+      num: "04", title: "Aller plus loin",
+      items: ["Les hooks — automatiser sans le modèle", "Les plugins — tout empaqueter", "Distribution et marketplace"],
+      steps: []
+    },
+
+    // ── 14 · Hooks ─────────────────────────────────────────────────────
+    {
+      id: "s14", type: "content", sectionId: "extend",
+      title: "Les hooks",
+      context: "Quand la règle doit s'appliquer à coup sûr, on ne la demande pas — on la branche",
+      steps: [
+        {
+          type: "definition",
+          text: "Un hook est un <strong>script déclenché automatiquement</strong> à un moment clé de la session. Il ne passe pas par le modèle : c'est du code, donc <em>déterministe, immédiat et gratuit en tokens</em>."
+        },
+        {
+          type: "flow",
+          items: [
+            { label: "Début de session", note: "sessionStart" },
+            { label: "Prompt envoyé",    note: "userPromptSubmitted", accent: true },
+            { label: "Avant un outil",   note: "preToolUse",          accent: true },
+            { label: "Après un outil",   note: "postToolUse",         accent: true },
+            { label: "Fin de session",   note: "sessionEnd" }
+          ]
+        },
+        { type: "bullet", text: "<code>preToolUse</code> peut répondre <em>allow</em>, <em>ask</em> ou <em>deny</em> — de quoi bloquer une commande destructrice <strong>avant</strong> qu'elle s'exécute" },
+        { type: "bullet", text: "<code>postToolUse</code> pour lancer le formateur et le linter après chaque fichier modifié" },
+        {
+          type: "rule",
+          text: "Déclarés en JSON dans <code>.github/hooks/</code> pour l'équipe, <code>~/.copilot/hooks/</code> pour soi. Règle de tri : si la consigne est <strong>toujours vraie</strong> et vérifiable par du code, c'est un hook — pas une instruction que le modèle pourrait oublier."
+        }
+      ]
+    },
+
+    // ── 15 · Plugins ───────────────────────────────────────────────────
+    {
+      id: "s15", type: "content", sectionId: "extend",
+      title: "Les plugins",
+      context: "Le format officiel pour distribuer tout ce qu'on vient de voir",
+      steps: [
+        {
+          type: "definition",
+          text: "Un plugin est un <em>paquet installable</em>. Il regroupe skills, agents, hooks et connexions à des outils externes en une seule unité — on l'installe d'une commande, on le met à jour comme une dépendance."
+        },
+        { type: "file", name: "plugin.json", badge: "REQUIS",    desc: "Le manifeste : nom, version, description et composants inclus" },
+        { type: "file", name: "skills/",     badge: "Optionnel",  desc: "Les dossiers de skills, avec leur SKILL.md" },
+        { type: "file", name: "agents/",     badge: "Optionnel",  desc: "Les fichiers .agent.md — les rôles personnalisés" },
+        { type: "file", name: "hooks/",      badge: "Optionnel",  desc: "Les scripts branchés sur les événements de session" }
+      ]
+    },
+
+    // ── 16 · Distribution & marketplace ────────────────────────────────
+    {
+      id: "s16", type: "grid", sectionId: "extend",
+      title: "Distribution & marketplace",
+      steps: [
+        {
+          type: "distribution", rank: "Le plus simple",
+          title: "Dépôt Git ou dossier local",
+          desc: "On installe depuis un dépôt GitHub, public ou privé — ou depuis un simple chemin local.",
+          cmd: "copilot plugin install org/toolbox"
+        },
+        {
+          type: "distribution", rank: "À l'échelle de l'équipe",
+          title: "Marketplace",
+          desc: "Un catalogue déclaré une fois, que chacun parcourt et installe à la demande. Deux sont fournis d'office : copilot-plugins et awesome-copilot.",
+          cmd: "copilot plugin marketplace add org/repo"
+        },
+        {
+          type: "distribution", rank: "Gouvernance",
+          title: "Déploiement centralisé",
+          desc: "Les administrateurs peuvent imposer un jeu de plugins à toute l'organisation — tout le monde travaille alors avec les mêmes règles, sans rien installer."
+        }
+      ]
+    },
+
+    // ── 17 · Discussion ────────────────────────────────────────────────
+    {
+      id: "s17", type: "discussion", sectionId: "discussion",
+      title: "À nous de jouer",
+      prompt: "Quelle tâche répétitive aimeriez-vous ne plus jamais réexpliquer ?",
       hints: [
-        "Un skill pour générer les ADR de nos projets",
-        "Un agent de revue de sécurité sur nos PR",
-        "Un skill de création de tests unitaires selon nos conventions",
-        "Un agent de migration de code legacy"
+        "Un skill qui génère nos ADR au bon format",
+        "Un skill qui écrit les tests selon nos conventions",
+        "Un agent qui relit la sécurité de nos PR",
+        "Un hook qui lance le linter après chaque modification"
       ],
       steps: []
     }
